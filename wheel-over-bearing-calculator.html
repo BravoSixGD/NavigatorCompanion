@@ -1,343 +1,243 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Wheel Over Bearing Calculator</title>
+  <link rel="stylesheet" href="assets/theme.css">
+
   <style>
-    * { box-sizing: border-box; }
-
-    body {
-      margin: 0;
-      font-family: Arial, Helvetica, sans-serif;
-      background: #f4f6f8;
-      color: #111827;
-    }
-
-    header {
-      background: #0f172a;
-      color: #ffffff;
-      padding: 16px 20px;
-      text-align: center;
-    }
-
-    h1 {
-      margin: 0;
-      font-size: 24px;
-      font-weight: 700;
-    }
-
-    main {
-      max-width: 850px;
-      margin: 18px auto;
-      padding: 0 14px 28px;
-    }
-
-    .panel {
-      background: #ffffff;
-      border: 1px solid #d1d5db;
-      border-radius: 14px;
-      box-shadow: 0 2px 10px rgba(15, 23, 42, 0.06);
-      padding: 16px;
-      margin-bottom: 16px;
-    }
-
-    .form-grid {
+    .input-grid {
       display: grid;
-      grid-template-columns: repeat(2, minmax(220px, 1fr));
-      gap: 14px;
+      grid-template-columns: 1fr;
+      gap: 12px;
     }
-
-    label {
-      display: block;
-      font-weight: 700;
-      font-size: 14px;
-      margin-bottom: 6px;
-    }
-
-    input {
-      width: 100%;
-      border: 1px solid #cbd5e1;
-      border-radius: 9px;
-      padding: 10px;
-      font-size: 16px;
-      outline: none;
-    }
-
-    input:focus {
-      border-color: #2563eb;
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
-    }
-
-    input.field-error {
-      border-color: #dc2626;
-    }
-
-    input.field-ok {
-      border-color: #16a34a;
-    }
-
-    .actions {
-      margin-top: 16px;
-    }
-
-    button {
-      border: 0;
-      border-radius: 10px;
-      padding: 11px 24px;
-      cursor: pointer;
-      font-weight: 700;
-      font-size: 15px;
-      color: #ffffff;
-      min-width: 110px;
-    }
-
-    button.ok { background: #16a34a; }
-    button.bad { background: #dc2626; }
 
     .table-wrap {
+      width: 100%;
       overflow-x: auto;
+      margin-top: 16px;
+      border-radius: 12px;
     }
 
     table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 15px;
+      min-width: 420px;
+      background: var(--bg-input);
+      color: var(--text-main);
     }
 
-    th, td {
-      padding: 11px 12px;
-      border-bottom: 1px solid #d1d5db;
-      text-align: right;
-      white-space: nowrap;
+    th,
+    td {
+      border: 1px solid var(--border-main);
+      padding: 12px;
+      text-align: center;
+      font-size: 16px;
     }
-
-    th:first-child, td:first-child { text-align: left; }
 
     th {
-      background: #f9fafb;
+      background: var(--bg-card);
+      color: var(--text-main);
+      font-weight: bold;
+    }
+
+    td {
+      color: #e9f1f7;
+    }
+
+    .note {
+      margin-top: 12px;
+      color: var(--text-muted);
       font-size: 14px;
+      line-height: 1.5;
     }
 
-    @media (max-width: 650px) {
-      .form-grid { grid-template-columns: 1fr; }
-      h1 { font-size: 21px; }
-      th, td { font-size: 14px; }
+    @media (min-width: 760px) {
+      .input-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
     }
 
-    .home-btn {
-  position: fixed;
-  top: max(12px, env(safe-area-inset-top));
-  right: max(12px, env(safe-area-inset-right));
-  width: clamp(40px, 9vw, 48px);
-  height: clamp(40px, 9vw, 48px);
-  background: red;
-  color: white;
-  text-decoration: none;
-  font-size: clamp(30px, 7vw, 38px);
-  font-weight: bold;
-  line-height: clamp(36px, 8vw, 43px);
-  text-align: center;
-  border-radius: 8px;
-  z-index: 9999;
-}
+    @media (orientation: landscape) and (max-height: 520px) {
+      th,
+      td {
+        padding: 9px;
+        font-size: 15px;
+      }
+    }
   </style>
 </head>
+
 <body>
   <a href="index.html" class="home-btn">×</a>
-  <header>
-    <h1>Wheel Over Bearing Calculator</h1>
-  </header>
 
-  <main>
-    <section class="panel">
-      <div class="form-grid">
+  <div class="app-container">
+    <h1 class="page-title">Wheel Over Bearing Calculator</h1>
+
+    <div class="card">
+      <div class="card-title">Inputs</div>
+
+      <div class="input-grid">
         <div>
-          <label for="course">Course of Ship</label>
-          <input id="course" type="text" inputmode="decimal" autocomplete="off" />
+          <label>Course of Ship</label>
+          <input id="course" type="number" inputmode="decimal" step="0.1" placeholder="090">
         </div>
 
         <div>
-          <label for="fixBearing">Bearing of Fixing mark from wheel over</label>
-          <input id="fixBearing" type="text" inputmode="decimal" autocomplete="off" />
+          <label>Bearing of Fixing mark from wheel over</label>
+          <input id="fixBearing" type="number" inputmode="decimal" step="0.1" placeholder="045">
         </div>
 
         <div>
-          <label for="fixRange">Range of fixing mark from wheel over (in Cables)</label>
-          <input id="fixRange" type="text" inputmode="decimal" autocomplete="off" />
+          <label>Range of fixing mark from wheel over (in Cables)</label>
+          <input id="fixRange" type="number" inputmode="decimal" step="0.1" placeholder="5">
         </div>
 
         <div>
-          <label for="legLength">Length of Leg (in cables)</label>
-          <input id="legLength" type="text" inputmode="decimal" autocomplete="off" />
+          <label>Length of Leg (in cables)</label>
+          <input id="legLength" type="number" inputmode="decimal" step="0.1" placeholder="10">
         </div>
       </div>
 
-      <div class="actions">
-        <button id="goBtn" class="bad">Go</button>
-      </div>
-    </section>
+      <button id="goBtn" class="go-btn" onclick="calculate()">GO</button>
 
-    <section class="panel">
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Distance to Wheel Over</th>
-              <th>Bearing of Fixing Mark</th>
-            </tr>
-          </thead>
-          <tbody id="resultsBody"></tbody>
-        </table>
+      <div id="result" class="result">
+        Enter values to generate bearing table.
       </div>
-    </section>
-  </main>
+    </div>
+  </div>
 
   <script>
-    const inputs = {
-      course: document.getElementById('course'),
-      fixBearing: document.getElementById('fixBearing'),
-      fixRange: document.getElementById('fixRange'),
-      legLength: document.getElementById('legLength')
-    };
+    const courseInput = document.getElementById("course");
+    const fixBearingInput = document.getElementById("fixBearing");
+    const fixRangeInput = document.getElementById("fixRange");
+    const legLengthInput = document.getElementById("legLength");
+    const goBtn = document.getElementById("goBtn");
+    const result = document.getElementById("result");
 
-    const goBtn = document.getElementById('goBtn');
-    const resultsBody = document.getElementById('resultsBody');
+    document.querySelectorAll("input").forEach(input => {
+      input.addEventListener("input", updateButton);
+    });
 
-    function toRad(deg) { return deg * Math.PI / 180; }
-    function toDeg(rad) { return rad * 180 / Math.PI; }
-    function norm360(deg) { return ((deg % 360) + 360) % 360; }
-
-    function fmtBearing(deg) {
-      const value = norm360(deg);
-      const fixed = value.toFixed(1);
-      const parts = fixed.split('.');
-      return parts[0].padStart(3, '0') + '.' + parts[1] + '°T';
+    function toRad(deg) {
+      return deg * Math.PI / 180;
     }
 
-    function fmtC(value) {
-      const fixed = Number(value).toFixed(2);
-      return fixed.replace(/\.00$/, '').replace(/(\.\d)0$/, '$1') + ' C';
+    function toDeg(rad) {
+      return rad * 180 / Math.PI;
     }
 
-    function parseNumber(input) {
-      const text = input.value.trim();
-      if (!/^(\d+(\.\d*)?|\.\d+)$/.test(text)) return NaN;
-      return Number(text);
+    function normalizeBearing(value) {
+      return ((value % 360) + 360) % 360;
     }
 
-    function getValidation() {
-      const course = parseNumber(inputs.course);
-      const fixBearing = parseNumber(inputs.fixBearing);
-      const fixRange = parseNumber(inputs.fixRange);
-      const legLength = parseNumber(inputs.legLength);
-
-      const valid = {
-        course: Number.isFinite(course) && course >= 0 && course < 360,
-        fixBearing: Number.isFinite(fixBearing) && fixBearing >= 0 && fixBearing < 360,
-        fixRange: Number.isFinite(fixRange) && fixRange > 0,
-        legLength: Number.isFinite(legLength) && legLength >= 0.5
-      };
-
-      return {
-        allValid: Object.values(valid).every(Boolean),
-        valid,
-        values: { course, fixBearing, fixRange, legLength }
-      };
+    function formatBearing(value) {
+      const bearing = normalizeBearing(value);
+      return bearing.toFixed(1).padStart(5, "0");
     }
 
-    function updateButtonState() {
-      const status = getValidation();
+    function isValid() {
+      const course = Number(courseInput.value);
+      const fixBearing = Number(fixBearingInput.value);
+      const fixRange = Number(fixRangeInput.value);
+      const legLength = Number(legLengthInput.value);
 
-      Object.keys(inputs).forEach(key => {
-        inputs[key].classList.remove('field-ok', 'field-error');
-        if (inputs[key].value.trim() !== '') {
-          inputs[key].classList.add(status.valid[key] ? 'field-ok' : 'field-error');
-        }
-      });
+      if (!Number.isFinite(course) || course < 0 || course >= 360) return false;
+      if (!Number.isFinite(fixBearing) || fixBearing < 0 || fixBearing >= 360) return false;
+      if (!Number.isFinite(fixRange) || fixRange <= 0) return false;
+      if (!Number.isFinite(legLength) || legLength <= 0) return false;
 
-      goBtn.classList.toggle('ok', status.allValid);
-      goBtn.classList.toggle('bad', !status.allValid);
+      return true;
     }
 
-    function unitFromBearing(bearingDeg) {
-      const r = toRad(bearingDeg);
-      return { x: Math.sin(r), y: Math.cos(r) };
+    function updateButton() {
+      if (isValid()) {
+        goBtn.classList.add("valid");
+      } else {
+        goBtn.classList.remove("valid");
+      }
     }
 
-    function bearingFromTo(a, b) {
-      const east = b.x - a.x;
-      const north = b.y - a.y;
-      return norm360(toDeg(Math.atan2(east, north)));
+    function calculateBearingFromShip(course, fixBearing, fixRange, distanceToWheelOver) {
+      const courseRad = toRad(course);
+      const fixBearingRad = toRad(fixBearing);
+
+      const fixX = fixRange * Math.sin(fixBearingRad);
+      const fixY = fixRange * Math.cos(fixBearingRad);
+
+      const shipX = -distanceToWheelOver * Math.sin(courseRad);
+      const shipY = -distanceToWheelOver * Math.cos(courseRad);
+
+      const dx = fixX - shipX;
+      const dy = fixY - shipY;
+
+      const bearing = toDeg(Math.atan2(dx, dy));
+      return normalizeBearing(bearing);
     }
 
-    function makeDistances(legLength) {
-      const distances = [0.5];
-      for (let d = 1; d <= Math.floor(legLength); d++) {
+    function buildDistances(legLength) {
+      const distances = [];
+
+      for (let d = Math.floor(legLength); d >= 0; d--) {
         distances.push(d);
       }
 
-      const last = distances[distances.length - 1];
-      if (Math.abs(legLength - last) > 0.000001) {
-        distances.push(legLength);
+      if (!distances.includes(legLength)) {
+        distances.unshift(legLength);
       }
 
-      return [...new Set(distances.map(d => Number(d.toFixed(3))))];
+      return [...new Set(distances)].sort((a, b) => b - a);
     }
 
-    function calculate(values) {
-      const courseUnit = unitFromBearing(values.course);
-      const fixUnit = unitFromBearing(values.fixBearing);
-
-      const fix = {
-        x: values.fixRange * fixUnit.x,
-        y: values.fixRange * fixUnit.y
-      };
-
-      return makeDistances(values.legLength).map(d => {
-        const ship = {
-          x: -d * courseUnit.x,
-          y: -d * courseUnit.y
-        };
-
-        return {
-          distanceToWheelOver: d,
-          bearing: bearingFromTo(ship, fix)
-        };
-      });
-    }
-
-    function renderTable(rows) {
-      resultsBody.innerHTML = '';
-
-      rows.forEach(row => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${fmtC(row.distanceToWheelOver)}</td>
-          <td><strong>${fmtBearing(row.bearing)}</strong></td>
-        `;
-        resultsBody.appendChild(tr);
-      });
-    }
-
-    function run() {
-      updateButtonState();
-      const status = getValidation();
-
-      if (!status.allValid) {
-        resultsBody.innerHTML = '';
+    function calculate() {
+      if (!isValid()) {
+        result.innerHTML = `<span class="warning">Recheck the values entered.</span>`;
+        updateButton();
         return;
       }
 
-      renderTable(calculate(status.values));
+      const course = Number(courseInput.value);
+      const fixBearing = Number(fixBearingInput.value);
+      const fixRange = Number(fixRangeInput.value);
+      const legLength = Number(legLengthInput.value);
+
+      const distances = buildDistances(legLength);
+
+      let tableHTML = `
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Distance to Wheel Over (Cables)</th>
+                <th>Bearing of Fixing Mark</th>
+              </tr>
+            </thead>
+            <tbody>
+      `;
+
+      distances.forEach(distance => {
+        const bearing = calculateBearingFromShip(course, fixBearing, fixRange, distance);
+
+        tableHTML += `
+          <tr>
+            <td>${distance.toFixed(1)}</td>
+            <td>${formatBearing(bearing)}°</td>
+          </tr>
+        `;
+      });
+
+      tableHTML += `
+            </tbody>
+          </table>
+        </div>
+      `;
+
+      result.innerHTML = tableHTML;
+      updateButton();
     }
 
-    Object.values(inputs).forEach(input => {
-      input.addEventListener('input', updateButtonState);
-    });
-
-    goBtn.addEventListener('click', run);
-    updateButtonState();
+    updateButton();
   </script>
 </body>
 </html>
