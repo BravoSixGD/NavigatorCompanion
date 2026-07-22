@@ -101,8 +101,8 @@
     }
 
     .a4-sheet {
-      width: 297mm;
-      height: 210mm;
+      width: 210mm;
+      height: 297mm;
       background: #dff2d8;
       margin: 0 auto;
       box-shadow: 0 0 10px rgba(0,0,0,0.45);
@@ -110,8 +110,8 @@
 
     .ras-svg {
       display: block;
-      width: 297mm;
-      height: 210mm;
+      width: 210mm;
+      height: 297mm;
       background: #dff2d8;
     }
 
@@ -137,7 +137,7 @@
     }
 
     @page {
-      size: A4 landscape;
+      size: A4 portrait;
       margin: 0;
     }
 
@@ -161,8 +161,8 @@
         position: fixed;
         left: 0;
         top: 0;
-        width: 297mm;
-        height: 210mm;
+        width: 210mm;
+        height: 297mm;
         padding: 0;
         margin: 0;
         overflow: hidden;
@@ -171,15 +171,15 @@
       }
 
       .a4-sheet {
-        width: 297mm;
-        height: 210mm;
+        width: 210mm;
+        height: 297mm;
         margin: 0;
         box-shadow: none;
       }
 
       .ras-svg {
-        width: 297mm;
-        height: 210mm;
+        width: 210mm;
+        height: 297mm;
       }
     }
   </style>
@@ -330,13 +330,19 @@
     document
       .querySelectorAll("input, select")
       .forEach((control) => {
-        control.addEventListener("input", updateButton);
-        control.addEventListener("change", updateButton);
+        control.addEventListener("input", handleInputChange);
+        control.addEventListener("change", handleInputChange);
       });
 
     goBtn.addEventListener("click", calculate);
     printBtn.addEventListener("click", printGraph);
     saveBtn.addEventListener("click", saveGraphAsImage);
+
+    function handleInputChange() {
+      updateButton();
+      printBtn.disabled = true;
+      saveBtn.disabled = true;
+    }
 
     function valueOf(id) {
       return Number(document.getElementById(id).value);
@@ -446,36 +452,19 @@
     }
 
     function updateButton() {
-      const valid = isValid();
-
-      goBtn.classList.toggle("valid", valid);
-
-      if (!valid) {
-        printBtn.disabled = true;
-        saveBtn.disabled = true;
-      }
+      goBtn.classList.toggle("valid", isValid());
     }
 
-    function niceCeiling(value) {
+    function roundScaleUp(value) {
       if (value <= 0) return 1;
 
-      const exponent = Math.floor(Math.log10(value));
-      const base = Math.pow(10, exponent);
-      const normal = value / base;
+      let step = 0.5;
 
-      if (normal <= 1) return 1 * base;
-      if (normal <= 2) return 2 * base;
-      if (normal <= 5) return 5 * base;
+      if (value > 20) step = 1;
+      if (value > 50) step = 2;
+      if (value > 100) step = 5;
 
-      return 10 * base;
-    }
-
-    function toMmX(valueM, minX, scaleMPerCm, marginMm) {
-      return marginMm + ((valueM - minX) / scaleMPerCm) * 10;
-    }
-
-    function toMmY(valueM, minY, scaleMPerCm, marginMm) {
-      return marginMm + ((valueM - minY) / scaleMPerCm) * 10;
+      return Math.ceil(value / step) * step;
     }
 
     function makeLine(x1, y1, x2, y2, stroke, width, dash = "") {
@@ -505,6 +494,46 @@
       `;
     }
 
+    function renderGrid() {
+      let grid = `
+        <rect
+          x="0"
+          y="0"
+          width="210"
+          height="297"
+          fill="#dff2d8"
+        />
+      `;
+
+      for (let x = 0; x <= 210; x += 1) {
+        const isMajor = x % 10 === 0;
+
+        grid += makeLine(
+          x,
+          0,
+          x,
+          297,
+          isMajor ? "#3b873b" : "#91c891",
+          isMajor ? 0.18 : 0.06
+        );
+      }
+
+      for (let y = 0; y <= 297; y += 1) {
+        const isMajor = y % 10 === 0;
+
+        grid += makeLine(
+          0,
+          y,
+          210,
+          y,
+          isMajor ? "#3b873b" : "#91c891",
+          isMajor ? 0.18 : 0.06
+        );
+      }
+
+      return grid;
+    }
+
     function shipPath(cx, stemY, loa, beam) {
       const shoulder = Math.min(loa * 0.10, beam * 1.25);
       const halfBeam = beam / 2;
@@ -519,46 +548,6 @@
       `;
     }
 
-    function renderGrid() {
-      let grid = `
-        <rect
-          x="0"
-          y="0"
-          width="297"
-          height="210"
-          fill="#dff2d8"
-        />
-      `;
-
-      for (let x = 0; x <= 297; x += 1) {
-        const isMajor = x % 10 === 0;
-
-        grid += makeLine(
-          x,
-          0,
-          x,
-          210,
-          isMajor ? "#3b873b" : "#91c891",
-          isMajor ? 0.18 : 0.06
-        );
-      }
-
-      for (let y = 0; y <= 210; y += 1) {
-        const isMajor = y % 10 === 0;
-
-        grid += makeLine(
-          0,
-          y,
-          297,
-          y,
-          isMajor ? "#3b873b" : "#91c891",
-          isMajor ? 0.18 : 0.06
-        );
-      }
-
-      return grid;
-    }
-
     function renderShip(options) {
       const {
         cx,
@@ -571,39 +560,26 @@
         rasSide,
         fill,
         stroke,
-        scaleMPerCm
+        dashed,
+        opacity
       } = options;
 
       const halfBeam = beam / 2;
-      const normalStroke = 0.55;
-      const thinStroke = 0.25;
-      const labelSize = 4.2;
-      const smallSize = 3.1;
-
-      const rasX =
-        rasSide === "right"
-          ? cx + halfBeam
-          : cx - halfBeam;
-
+      const rasX = rasSide === "right" ? cx + halfBeam : cx - halfBeam;
       const rasY = stemY + ras;
       const standardY = stemY + standard;
 
-      const rasLabelX =
-        rasSide === "right"
-          ? rasX + (scaleMPerCm * 0.8)
-          : rasX - (scaleMPerCm * 0.8);
-
-      const rasLabelAnchor =
-        rasSide === "right"
-          ? "start"
-          : "end";
+      const rasLabelX = rasSide === "right" ? rasX + 5 : rasX - 5;
+      const rasLabelAnchor = rasSide === "right" ? "start" : "end";
 
       return `
         <path
           d="${shipPath(cx, stemY, loa, beam)}"
           fill="${fill}"
           stroke="${stroke}"
-          stroke-width="${normalStroke}"
+          stroke-width="0.55"
+          ${dashed ? `stroke-dasharray="2 1.5"` : ""}
+          opacity="${opacity}"
         />
 
         ${makeLine(
@@ -612,7 +588,7 @@
           cx,
           stemY + loa,
           stroke,
-          thinStroke,
+          0.25,
           "2 2"
         )}
 
@@ -621,39 +597,43 @@
           standardY,
           cx + halfBeam,
           standardY,
-          "#111",
-          thinStroke
+          stroke,
+          0.25
         )}
 
         ${makeText(
           cx,
-          stemY + loa + (scaleMPerCm * 1.0),
+          stemY + loa + 7,
           label,
-          labelSize,
-          "middle"
+          4.2,
+          "middle",
+          stroke
         )}
 
         ${makeText(
           cx,
-          standardY - (scaleMPerCm * 0.25),
+          standardY - 2,
           "STANDARD",
-          smallSize,
-          "middle"
+          3.1,
+          "middle",
+          stroke
         )}
 
         <circle
           cx="${rasX}"
           cy="${rasY}"
-          r="${Math.max(scaleMPerCm * 0.13, 1.4)}"
-          fill="#111"
+          r="1.4"
+          fill="${stroke}"
+          opacity="${opacity}"
         />
 
         ${makeText(
           rasLabelX,
-          rasY - (scaleMPerCm * 0.25),
+          rasY - 3,
           "RAS POINT",
-          smallSize,
-          rasLabelAnchor
+          3.1,
+          rasLabelAnchor,
+          stroke
         )}
       `;
     }
@@ -662,21 +642,16 @@
       const r = data.receiving;
       const d = data.delivery;
 
-      const a4WidthMm = 297;
-      const a4HeightMm = 210;
-      const marginMm = 12;
+      const a4WidthMm = 210;
+      const a4HeightMm = 297;
+      const paddingMm = 12;
 
-      const usableWidthCm = (a4WidthMm - (2 * marginMm)) / 10;
-      const usableHeightCm = (a4HeightMm - (2 * marginMm)) / 10;
+      const usableWidthCm = (a4WidthMm - (2 * paddingMm)) / 10;
+      const usableHeightCm = (a4HeightMm - (2 * paddingMm)) / 10;
 
-      const speedAdvantage =
-        data.approachSpeed - data.rasSpeed;
-
-      const surgeRateMPerKn =
-        data.surgeRateYardsPerKn * 0.9144;
-
-      const surgeDistance =
-        surgeRateMPerKn * speedAdvantage;
+      const speedAdvantage = data.approachSpeed - data.rasSpeed;
+      const surgeRateMPerKn = data.surgeRateYardsPerKn * 0.9144;
+      const surgeDistance = surgeRateMPerKn * speedAdvantage;
 
       const centrelineSeparation =
         (r.beam / 2) +
@@ -689,108 +664,86 @@
       const deliveryStemY = 0;
       const deliveryRasY = deliveryStemY + d.ras;
 
-      const receivingFinalStemY =
-        deliveryRasY - r.ras;
+      const receivingFinalStemY = deliveryRasY - r.ras;
+      const receivingOrderStemY = receivingFinalStemY + surgeDistance;
 
-      const receivingOrderStemY =
-        deliveryRasY + surgeDistance - r.ras;
+      const marginM = Math.max(
+        10,
+        Math.max(r.beam, d.beam, data.lateralSeparationM) * 0.35
+      );
 
-      const marginM =
-        Math.max(
-          20,
-          Math.max(r.beam, d.beam, data.lateralSeparationM) * 0.65
-        );
+      const annotationMarginM = 20;
 
-      const minX =
-        Math.min(
-          receivingCx - r.beam / 2,
-          deliveryCx - d.beam / 2
-        ) - marginM;
+      const minX = Math.min(
+        receivingCx - (r.beam / 2),
+        deliveryCx - (d.beam / 2)
+      ) - marginM - annotationMarginM;
 
-      const maxX =
-        Math.max(
-          receivingCx + r.beam / 2,
-          deliveryCx + d.beam / 2
-        ) + marginM;
+      const maxX = Math.max(
+        receivingCx + (r.beam / 2),
+        deliveryCx + (d.beam / 2)
+      ) + marginM + annotationMarginM;
 
-      const minY =
-        Math.min(
-          deliveryStemY,
-          receivingOrderStemY,
-          receivingFinalStemY
-        ) - marginM;
+      const minY = Math.min(
+        deliveryStemY,
+        receivingFinalStemY,
+        receivingOrderStemY
+      ) - marginM - annotationMarginM;
 
-      const maxY =
-        Math.max(
-          deliveryStemY + d.loa,
-          receivingOrderStemY + r.loa,
-          receivingFinalStemY + r.loa
-        ) + marginM;
+      const maxY = Math.max(
+        deliveryStemY + d.loa,
+        receivingFinalStemY + r.loa,
+        receivingOrderStemY + r.loa
+      ) + marginM + annotationMarginM;
 
       const graphWidthM = maxX - minX;
       const graphHeightM = maxY - minY;
 
-      const scaleMPerCm =
-        niceCeiling(
-          Math.max(
-            graphWidthM / usableWidthCm,
-            graphHeightM / usableHeightCm
-          )
-        );
+      const rawScale = Math.max(
+        graphWidthM / usableWidthCm,
+        graphHeightM / usableHeightCm
+      );
+
+      const scaleMPerCm = roundScaleUp(rawScale * 1.02);
+
+      const contentWidthMm = (graphWidthM / scaleMPerCm) * 10;
+      const contentHeightMm = (graphHeightM / scaleMPerCm) * 10;
+
+      const offsetX = (a4WidthMm - contentWidthMm) / 2;
+      const offsetY = (a4HeightMm - contentHeightMm) / 2;
 
       function x(valueM) {
-        return toMmX(valueM, minX, scaleMPerCm, marginMm);
+        return offsetX + ((valueM - minX) / scaleMPerCm) * 10;
       }
 
       function y(valueM) {
-        return toMmY(valueM, minY, scaleMPerCm, marginMm);
+        return offsetY + ((valueM - minY) / scaleMPerCm) * 10;
       }
 
-      function convertShip(ship, cxM, stemYM, label, side, fill, stroke) {
-        return renderShip({
-          cx: x(cxM),
-          stemY: y(stemYM),
-          loa: (ship.loa / scaleMPerCm) * 10,
-          beam: (ship.beam / scaleMPerCm) * 10,
-          standard: (ship.standard / scaleMPerCm) * 10,
-          ras: (ship.ras / scaleMPerCm) * 10,
-          label,
-          rasSide: side,
-          fill,
-          stroke,
-          scaleMPerCm: (scaleMPerCm / scaleMPerCm) * 10
-        });
+      function length(valueM) {
+        return (valueM / scaleMPerCm) * 10;
       }
 
-      const receivingRasX =
-        x(receivingCx + r.beam / 2);
+      const receivingRasXOrder = x(receivingCx + r.beam / 2);
+      const receivingRasYOrder = y(receivingOrderStemY + r.ras);
 
-      const receivingRasYOrder =
-        y(receivingOrderStemY + r.ras);
+      const receivingRasXFinal = x(receivingCx + r.beam / 2);
+      const receivingRasYFinal = y(receivingFinalStemY + r.ras);
 
-      const receivingRasYFinal =
-        y(receivingFinalStemY + r.ras);
+      const deliveryRasX = x(deliveryCx - d.beam / 2);
+      const deliveryRasYmm = y(deliveryRasY);
 
-      const deliveryRasX =
-        x(deliveryCx - d.beam / 2);
-
-      const deliveryRasYmm =
-        y(deliveryRasY);
-
-      const lateralDimY =
-        deliveryRasYmm - 12;
-
-      const surgeDimX =
-        receivingRasX + Math.max(15, (data.lateralSeparationM / scaleMPerCm) * 4);
+      const lateralDimY = Math.max(22, deliveryRasYmm - 12);
+      const surgeDimX = receivingRasXOrder + 20;
 
       const svg = `
         <svg
           id="rasSvg"
           class="ras-svg"
           xmlns="http://www.w3.org/2000/svg"
-          width="297mm"
-          height="210mm"
-          viewBox="0 0 297 210"
+          width="210mm"
+          height="297mm"
+          viewBox="0 0 210 297"
         >
           <defs>
             <marker
@@ -820,25 +773,50 @@
 
           ${renderGrid()}
 
-          ${convertShip(
-            d,
-            deliveryCx,
-            deliveryStemY,
-            "Delivery ship",
-            "left",
-            "#fff3dc",
-            "#1a1a1a"
-          )}
+          ${renderShip({
+            cx: x(deliveryCx),
+            stemY: y(deliveryStemY),
+            loa: length(d.loa),
+            beam: length(d.beam),
+            standard: length(d.standard),
+            ras: length(d.ras),
+            label: "Delivery ship",
+            rasSide: "left",
+            fill: "#fff3dc",
+            stroke: "#1a1a1a",
+            dashed: false,
+            opacity: 1
+          })}
 
-          ${convertShip(
-            r,
-            receivingCx,
-            receivingOrderStemY,
-            "Receiving ship",
-            "right",
-            "#dbeaff",
-            "#1a1a1a"
-          )}
+          ${renderShip({
+            cx: x(receivingCx),
+            stemY: y(receivingFinalStemY),
+            loa: length(r.loa),
+            beam: length(r.beam),
+            standard: length(r.standard),
+            ras: length(r.ras),
+            label: "Final position",
+            rasSide: "right",
+            fill: "#ffffff",
+            stroke: "#555555",
+            dashed: true,
+            opacity: 0.65
+          })}
+
+          ${renderShip({
+            cx: x(receivingCx),
+            stemY: y(receivingOrderStemY),
+            loa: length(r.loa),
+            beam: length(r.beam),
+            standard: length(r.standard),
+            ras: length(r.ras),
+            label: "Receiving ship",
+            rasSide: "right",
+            fill: "#dbeaff",
+            stroke: "#1a1a1a",
+            dashed: false,
+            opacity: 1
+          })}
 
           <line
             x1="${x(receivingCx + r.beam / 2)}"
@@ -870,7 +848,7 @@
           />
 
           ${makeLine(
-            receivingRasX,
+            receivingRasXOrder,
             receivingRasYOrder,
             surgeDimX,
             receivingRasYOrder,
@@ -880,7 +858,7 @@
           )}
 
           ${makeLine(
-            receivingRasX,
+            receivingRasXFinal,
             receivingRasYFinal,
             surgeDimX,
             receivingRasYFinal,
@@ -898,7 +876,7 @@
           )}
 
           ${makeLine(
-            receivingRasX,
+            receivingRasXFinal,
             receivingRasYFinal,
             deliveryRasX,
             deliveryRasYmm,
@@ -908,9 +886,9 @@
           )}
 
           <circle
-            cx="${receivingRasX}"
+            cx="${receivingRasXFinal}"
             cy="${receivingRasYFinal}"
-            r="1.2"
+            r="1.3"
             fill="none"
             stroke="#111"
             stroke-width="0.35"
@@ -919,7 +897,7 @@
 
           ${makeText(
             12,
-            9,
+            10,
             `Scale: 1 cm = ${formatNumber(scaleMPerCm, 2)} m`,
             4,
             "start"
@@ -927,15 +905,15 @@
 
           ${makeText(
             12,
-            14,
+            16,
             `1 mm = ${formatNumber(scaleMPerCm / 10, 2)} m`,
             3.2,
             "start"
           )}
 
           ${makeText(
-            285,
-            9,
+            198,
+            10,
             "RAS Approach Graph",
             4,
             "end"
@@ -946,9 +924,7 @@
       return {
         svg,
         surgeDistance,
-        surgeRateMPerKn,
         speedAdvantage,
-        lateralSeparationM: data.lateralSeparationM,
         scaleMPerCm
       };
     }
@@ -973,7 +949,7 @@
       const data = getInputs();
       const graph = renderGraph(data);
 
-      const output = `
+      resultBox.innerHTML = `
         <div class="success">RAS approach graph generated.</div>
 
         <div class="summary-grid">
@@ -991,7 +967,7 @@
         <div class="note">
           Order the receiving ship to come down to RAS speed when its RAS point is
           <strong>${formatMeters(graph.surgeDistance)}</strong> abaft the delivery ship RAS point.
-          After surge, both RAS points will be abeam at the entered lateral separation.
+          The dashed receiving ship shows the final position after surge.
         </div>
 
         <div class="graph-scroll">
@@ -1001,12 +977,10 @@
         </div>
 
         <div class="note">
-          A4 graph generated in landscape format. Scale used:
+          A4 portrait graph generated. Scale used:
           1 cm = ${formatNumber(graph.scaleMPerCm, 2)} m.
         </div>
       `;
-
-      resultBox.innerHTML = output;
 
       printBtn.disabled = false;
       saveBtn.disabled = false;
@@ -1044,14 +1018,13 @@
       );
 
       const url = URL.createObjectURL(svgBlob);
-
       const image = new Image();
 
       image.onload = function () {
         const canvas = document.createElement("canvas");
 
-        canvas.width = 3508;
-        canvas.height = 2480;
+        canvas.width = 2480;
+        canvas.height = 3508;
 
         const context = canvas.getContext("2d");
 
