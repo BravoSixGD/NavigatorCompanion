@@ -66,6 +66,55 @@
       line-height: 1.5;
     }
 
+    .action-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .action-btn {
+      width: 100%;
+      min-height: 52px;
+      border: none;
+      border-radius: 12px;
+      color: var(--text-main);
+      font-size: 18px;
+      font-weight: bold;
+      background: var(--primary);
+      cursor: pointer;
+    }
+
+    .action-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .graph-scroll {
+      width: 100%;
+      overflow: auto;
+      margin-top: 16px;
+      border: 1px solid var(--border-main);
+      border-radius: 12px;
+      background: var(--bg-input);
+      padding: 10px;
+    }
+
+    .a4-sheet {
+      width: 210mm;
+      height: 297mm;
+      background: #dff2d8;
+      margin: 0 auto;
+      box-shadow: 0 0 10px rgba(0,0,0,0.45);
+    }
+
+    .station-svg {
+      display: block;
+      width: 210mm;
+      height: 297mm;
+      background: #dff2d8;
+    }
+
     @media (min-width: 760px) {
       .input-grid {
         grid-template-columns: repeat(2, 1fr);
@@ -73,6 +122,57 @@
 
       .output-grid {
         grid-template-columns: repeat(2, 1fr);
+      }
+
+      .action-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @page {
+      size: A4 portrait;
+      margin: 0;
+    }
+
+    @media print {
+      body {
+        background: white;
+        padding: 0;
+        margin: 0;
+      }
+
+      body * {
+        visibility: hidden;
+      }
+
+      #printArea,
+      #printArea * {
+        visibility: visible;
+      }
+
+      #printArea {
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: 210mm;
+        height: 297mm;
+        padding: 0;
+        margin: 0;
+        overflow: hidden;
+        background: #dff2d8;
+        box-shadow: none;
+      }
+
+      .a4-sheet {
+        width: 210mm;
+        height: 297mm;
+        margin: 0;
+        box-shadow: none;
+      }
+
+      .station-svg {
+        width: 210mm;
+        height: 297mm;
       }
     }
   </style>
@@ -97,24 +197,12 @@
         <div class="input-grid">
           <div>
             <label>Guide ship's course</label>
-            <input
-              id="guideCourse"
-              type="number"
-              inputmode="decimal"
-              step="0.1"
-              placeholder="090"
-            >
+            <input id="guideCourse" type="number" inputmode="decimal" step="0.1" placeholder="090">
           </div>
 
           <div>
             <label>Guide ship's speed in knots</label>
-            <input
-              id="guideSpeed"
-              type="number"
-              inputmode="decimal"
-              step="0.1"
-              placeholder="12"
-            >
+            <input id="guideSpeed" type="number" inputmode="decimal" step="0.1" placeholder="12">
           </div>
         </div>
       </div>
@@ -125,24 +213,12 @@
         <div class="input-grid">
           <div>
             <label>Final station bearing from guide</label>
-            <input
-              id="finalBearing"
-              type="number"
-              inputmode="decimal"
-              step="0.1"
-              placeholder="045"
-            >
+            <input id="finalBearing" type="number" inputmode="decimal" step="0.1" placeholder="045">
           </div>
 
           <div>
             <label>Final station range from guide in cables</label>
-            <input
-              id="finalRange"
-              type="number"
-              inputmode="decimal"
-              step="0.1"
-              placeholder="5"
-            >
+            <input id="finalRange" type="number" inputmode="decimal" step="0.1" placeholder="5">
           </div>
         </div>
       </div>
@@ -153,24 +229,12 @@
         <div class="input-grid">
           <div>
             <label>Current position bearing from guide</label>
-            <input
-              id="currentBearing"
-              type="number"
-              inputmode="decimal"
-              step="0.1"
-              placeholder="120"
-            >
+            <input id="currentBearing" type="number" inputmode="decimal" step="0.1" placeholder="120">
           </div>
 
           <div>
             <label>Current position range from guide in cables</label>
-            <input
-              id="currentRange"
-              type="number"
-              inputmode="decimal"
-              step="0.1"
-              placeholder="12"
-            >
+            <input id="currentRange" type="number" inputmode="decimal" step="0.1" placeholder="12">
           </div>
         </div>
       </div>
@@ -181,27 +245,27 @@
         <div class="input-grid">
           <div>
             <label>Own speed in knots</label>
-            <input
-              id="ownSpeed"
-              type="number"
-              inputmode="decimal"
-              step="0.1"
-              placeholder="15"
-            >
+            <input id="ownSpeed" type="number" inputmode="decimal" step="0.1" placeholder="15">
           </div>
         </div>
       </div>
 
-      <button
-        id="goBtn"
-        class="go-btn"
-        type="button"
-      >
+      <button id="goBtn" class="go-btn" type="button">
         GO
       </button>
 
+      <div class="action-grid">
+        <button id="printBtn" class="action-btn" type="button" disabled>
+          Print A4 Graph
+        </button>
+
+        <button id="saveBtn" class="action-btn" type="button" disabled>
+          Save as Image
+        </button>
+      </div>
+
       <div id="result" class="result">
-        Enter values to calculate course to steer.
+        Enter values to calculate course to steer and plot movement.
       </div>
     </div>
   </div>
@@ -210,6 +274,8 @@
     "use strict";
 
     const goBtn = document.getElementById("goBtn");
+    const printBtn = document.getElementById("printBtn");
+    const saveBtn = document.getElementById("saveBtn");
     const resultBox = document.getElementById("result");
 
     const inputIds = [
@@ -225,10 +291,18 @@
     document
       .querySelectorAll("input")
       .forEach((input) => {
-        input.addEventListener("input", updateButton);
+        input.addEventListener("input", handleInputChange);
       });
 
     goBtn.addEventListener("click", calculate);
+    printBtn.addEventListener("click", printGraph);
+    saveBtn.addEventListener("click", saveGraphAsImage);
+
+    function handleInputChange() {
+      updateButton();
+      printBtn.disabled = true;
+      saveBtn.disabled = true;
+    }
 
     function readNumber(id) {
       const text = document.getElementById(id).value.trim();
@@ -341,24 +415,15 @@
         }
       }
 
-      if (
-        data.guideCourse < 0 ||
-        data.guideCourse >= 360
-      ) {
+      if (data.guideCourse < 0 || data.guideCourse >= 360) {
         return "Guide ship's course must be from 000 to 359.";
       }
 
-      if (
-        data.finalBearing < 0 ||
-        data.finalBearing >= 360
-      ) {
+      if (data.finalBearing < 0 || data.finalBearing >= 360) {
         return "Final station bearing must be from 000 to 359.";
       }
 
-      if (
-        data.currentBearing < 0 ||
-        data.currentBearing >= 360
-      ) {
+      if (data.currentBearing < 0 || data.currentBearing >= 360) {
         return "Current position bearing must be from 000 to 359.";
       }
 
@@ -436,16 +501,6 @@
         relativeTrackUnit
       );
 
-      /*
-        Required relative velocity is along the line from current station
-        to final station.
-
-        Own velocity = Guide velocity + Relative velocity
-
-        Let relative speed be s.
-
-        |Guide velocity + s × relative track unit| = Own speed
-      */
       const discriminant =
         (guideAlongRelativeTrack * guideAlongRelativeTrack) +
         (data.ownSpeed * data.ownSpeed) -
@@ -501,10 +556,6 @@
         };
       }
 
-      /*
-        If two valid solutions exist, use the larger relative speed.
-        This gives the shortest time to reach the final station.
-      */
       const relativeSpeed = Math.max(...positiveRoots);
 
       const ownVelocity = {
@@ -543,9 +594,426 @@
       };
     }
 
+    function niceCeiling(value) {
+      if (value <= 0) return 0.1;
+
+      const exponent = Math.floor(Math.log10(value));
+      const base = Math.pow(10, exponent);
+      const normal = value / base;
+
+      if (normal <= 1) return 1 * base;
+      if (normal <= 2) return 2 * base;
+      if (normal <= 5) return 5 * base;
+
+      return 10 * base;
+    }
+
+    function makeLine(x1, y1, x2, y2, stroke, width, dash = "") {
+      return `
+        <line
+          x1="${x1}"
+          y1="${y1}"
+          x2="${x2}"
+          y2="${y2}"
+          stroke="${stroke}"
+          stroke-width="${width}"
+          ${dash ? `stroke-dasharray="${dash}"` : ""}
+        />
+      `;
+    }
+
+    function makeText(x, y, text, size, anchor = "middle", fill = "#111") {
+      return `
+        <text
+          x="${x}"
+          y="${y}"
+          font-size="${size}"
+          text-anchor="${anchor}"
+          fill="${fill}"
+          font-family="Arial, sans-serif"
+        >${text}</text>
+      `;
+    }
+
+    function renderGrid() {
+      let grid = `
+        <rect
+          x="0"
+          y="0"
+          width="210"
+          height="297"
+          fill="#dff2d8"
+        />
+      `;
+
+      for (let x = 0; x <= 210; x += 1) {
+        const isMajor = x % 10 === 0;
+
+        grid += makeLine(
+          x,
+          0,
+          x,
+          297,
+          isMajor ? "#3b873b" : "#91c891",
+          isMajor ? 0.18 : 0.06
+        );
+      }
+
+      for (let y = 0; y <= 297; y += 1) {
+        const isMajor = y % 10 === 0;
+
+        grid += makeLine(
+          0,
+          y,
+          210,
+          y,
+          isMajor ? "#3b873b" : "#91c891",
+          isMajor ? 0.18 : 0.06
+        );
+      }
+
+      return grid;
+    }
+
+    function renderPoint(x, y, label, fill, labelXOffset, labelYOffset) {
+      return `
+        <circle
+          cx="${x}"
+          cy="${y}"
+          r="1.8"
+          fill="${fill}"
+          stroke="#111"
+          stroke-width="0.35"
+        />
+
+        ${makeText(
+          x + labelXOffset,
+          y + labelYOffset,
+          label,
+          3.2,
+          labelXOffset >= 0 ? "start" : "end",
+          "#111"
+        )}
+      `;
+    }
+
+    function renderMovementGraph(data, solution) {
+      const a4WidthMm = 210;
+      const a4HeightMm = 297;
+      const paddingMm = 14;
+
+      const usableWidthCm = (a4WidthMm - (2 * paddingMm)) / 10;
+      const usableHeightCm = (a4HeightMm - (2 * paddingMm)) / 10;
+
+      const currentRangeNm = data.currentRangeCables * 0.1;
+      const finalRangeNm = data.finalRangeCables * 0.1;
+
+      const guideStart = {
+        east: 0,
+        north: 0
+      };
+
+      const guideVelocity = velocityFromCourseAndSpeed(
+        data.guideCourse,
+        data.guideSpeed
+      );
+
+      const guideFinal = {
+        east: guideStart.east + (guideVelocity.east * solution.timeHours),
+        north: guideStart.north + (guideVelocity.north * solution.timeHours)
+      };
+
+      const ownCurrent = vectorFromBearingAndDistance(
+        data.currentBearing,
+        currentRangeNm
+      );
+
+      const finalRelativeFromGuide = vectorFromBearingAndDistance(
+        data.finalBearing,
+        finalRangeNm
+      );
+
+      const ownFinal = {
+        east: guideFinal.east + finalRelativeFromGuide.east,
+        north: guideFinal.north + finalRelativeFromGuide.north
+      };
+
+      const points = [
+        guideStart,
+        guideFinal,
+        ownCurrent,
+        ownFinal
+      ];
+
+      let minEast = Math.min(...points.map(p => p.east));
+      let maxEast = Math.max(...points.map(p => p.east));
+      let minNorth = Math.min(...points.map(p => p.north));
+      let maxNorth = Math.max(...points.map(p => p.north));
+
+      const widthNm = Math.max(0.1, maxEast - minEast);
+      const heightNm = Math.max(0.1, maxNorth - minNorth);
+
+      const marginNm = Math.max(
+        0.2,
+        Math.max(widthNm, heightNm) * 0.18
+      );
+
+      minEast -= marginNm;
+      maxEast += marginNm;
+      minNorth -= marginNm;
+      maxNorth += marginNm;
+
+      const graphWidthNm = maxEast - minEast;
+      const graphHeightNm = maxNorth - minNorth;
+
+      const scaleNmPerCm = niceCeiling(
+        Math.max(
+          graphWidthNm / usableWidthCm,
+          graphHeightNm / usableHeightCm
+        ) * 1.03
+      );
+
+      const contentWidthMm = (graphWidthNm / scaleNmPerCm) * 10;
+      const contentHeightMm = (graphHeightNm / scaleNmPerCm) * 10;
+
+      const offsetX = (a4WidthMm - contentWidthMm) / 2;
+      const offsetY = (a4HeightMm - contentHeightMm) / 2;
+
+      function x(east) {
+        return offsetX + ((east - minEast) / scaleNmPerCm) * 10;
+      }
+
+      function y(north) {
+        return offsetY + ((maxNorth - north) / scaleNmPerCm) * 10;
+      }
+
+      const guideStartX = x(guideStart.east);
+      const guideStartY = y(guideStart.north);
+
+      const guideFinalX = x(guideFinal.east);
+      const guideFinalY = y(guideFinal.north);
+
+      const ownCurrentX = x(ownCurrent.east);
+      const ownCurrentY = y(ownCurrent.north);
+
+      const ownFinalX = x(ownFinal.east);
+      const ownFinalY = y(ownFinal.north);
+
+      const northArrowX = 186;
+      const northArrowY1 = 34;
+      const northArrowY2 = 18;
+
+      const svg = `
+        <svg
+          id="stationSvg"
+          class="station-svg"
+          xmlns="http://www.w3.org/2000/svg"
+          width="210mm"
+          height="297mm"
+          viewBox="0 0 210 297"
+        >
+          <defs>
+            <marker
+              id="arrowEnd"
+              markerWidth="5"
+              markerHeight="5"
+              refX="5"
+              refY="2.5"
+              orient="auto"
+              markerUnits="strokeWidth"
+            >
+              <path d="M 0 0 L 5 2.5 L 0 5 Z" fill="#111" />
+            </marker>
+          </defs>
+
+          ${renderGrid()}
+
+          ${makeText(
+            12,
+            10,
+            `Scale: 1 cm = ${formatNumber(scaleNmPerCm, 3)} NM`,
+            4,
+            "start"
+          )}
+
+          ${makeText(
+            12,
+            16,
+            `1 mm = ${formatNumber(scaleNmPerCm / 10, 3)} NM`,
+            3.2,
+            "start"
+          )}
+
+          ${makeText(
+            198,
+            10,
+            "Stationing from Bows",
+            4,
+            "end"
+          )}
+
+          <line
+            x1="${northArrowX}"
+            y1="${northArrowY1}"
+            x2="${northArrowX}"
+            y2="${northArrowY2}"
+            stroke="#111"
+            stroke-width="0.6"
+            marker-end="url(#arrowEnd)"
+          />
+
+          ${makeText(
+            northArrowX,
+            northArrowY2 - 3,
+            "N",
+            4,
+            "middle"
+          )}
+
+          <line
+            x1="${guideStartX}"
+            y1="${guideStartY}"
+            x2="${guideFinalX}"
+            y2="${guideFinalY}"
+            stroke="#111"
+            stroke-width="0.65"
+            marker-end="url(#arrowEnd)"
+          />
+
+          ${makeText(
+            (guideStartX + guideFinalX) / 2,
+            (guideStartY + guideFinalY) / 2 - 3,
+            "Guide movement",
+            3.1,
+            "middle"
+          )}
+
+          <line
+            x1="${ownCurrentX}"
+            y1="${ownCurrentY}"
+            x2="${ownFinalX}"
+            y2="${ownFinalY}"
+            stroke="#0b4fbd"
+            stroke-width="0.75"
+            marker-end="url(#arrowEnd)"
+          />
+
+          ${makeText(
+            (ownCurrentX + ownFinalX) / 2,
+            (ownCurrentY + ownFinalY) / 2 + 5,
+            `Own CTS ${formatBearingHalfDegree(solution.courseToSteer)}`,
+            3.1,
+            "middle",
+            "#0b4fbd"
+          )}
+
+          ${makeLine(
+            guideStartX,
+            guideStartY,
+            ownCurrentX,
+            ownCurrentY,
+            "#444",
+            0.35,
+            "2 2"
+          )}
+
+          ${makeText(
+            (guideStartX + ownCurrentX) / 2,
+            (guideStartY + ownCurrentY) / 2 - 2,
+            "Current position from guide",
+            2.9,
+            "middle",
+            "#444"
+          )}
+
+          ${makeLine(
+            guideFinalX,
+            guideFinalY,
+            ownFinalX,
+            ownFinalY,
+            "#8a1a1a",
+            0.35,
+            "2 2"
+          )}
+
+          ${makeText(
+            (guideFinalX + ownFinalX) / 2,
+            (guideFinalY + ownFinalY) / 2 - 2,
+            "Final station from guide",
+            2.9,
+            "middle",
+            "#8a1a1a"
+          )}
+
+          ${renderPoint(
+            guideStartX,
+            guideStartY,
+            "Guide start",
+            "#111",
+            4,
+            -4
+          )}
+
+          ${renderPoint(
+            guideFinalX,
+            guideFinalY,
+            "Guide final",
+            "#111",
+            4,
+            -4
+          )}
+
+          ${renderPoint(
+            ownCurrentX,
+            ownCurrentY,
+            "Own current",
+            "#0b4fbd",
+            4,
+            -4
+          )}
+
+          ${renderPoint(
+            ownFinalX,
+            ownFinalY,
+            "Own final station",
+            "#8a1a1a",
+            4,
+            -4
+          )}
+
+          <rect
+            x="12"
+            y="270"
+            width="88"
+            height="18"
+            fill="rgba(255,255,255,0.55)"
+            stroke="#111"
+            stroke-width="0.25"
+          />
+
+          <circle cx="17" cy="276" r="1.5" fill="#111" />
+          ${makeText(22, 277, "Guide ship", 3, "start")}
+
+          <circle cx="17" cy="283" r="1.5" fill="#0b4fbd" />
+          ${makeText(22, 284, "Own ship", 3, "start")}
+
+          <circle cx="58" cy="283" r="1.5" fill="#8a1a1a" />
+          ${makeText(63, 284, "Final station", 3, "start")}
+        </svg>
+      `;
+
+      return {
+        svg,
+        scaleNmPerCm
+      };
+    }
+
     function showWarning(message) {
       resultBox.innerHTML =
         `<span class="warning">${message}</span>`;
+
+      printBtn.disabled = true;
+      saveBtn.disabled = true;
     }
 
     function calculate() {
@@ -581,6 +1049,8 @@
           </div>
         `;
 
+        printBtn.disabled = true;
+        saveBtn.disabled = true;
         updateButton();
         return;
       }
@@ -608,9 +1078,13 @@
           </div>
         `;
 
+        printBtn.disabled = true;
+        saveBtn.disabled = true;
         updateButton();
         return;
       }
+
+      const graph = renderMovementGraph(data, solution);
 
       resultBox.innerHTML = `
         <div class="success">Course to steer calculated.</div>
@@ -644,12 +1118,93 @@
           Relative speed made good:
           ${formatNumber(solution.relativeSpeed, 2)} kn.
           <br>
-          Bearing inputs are treated as true bearings. Range conversion used:
+          Bearings are true bearings. Range conversion used:
           1 cable = 0.1 NM.
+        </div>
+
+        <div class="graph-scroll">
+          <div id="printArea" class="a4-sheet">
+            ${graph.svg}
+          </div>
+        </div>
+
+        <div class="small-note">
+          A4 portrait graph generated. Scale used:
+          1 cm = ${formatNumber(graph.scaleNmPerCm, 3)} NM.
         </div>
       `;
 
+      printBtn.disabled = false;
+      saveBtn.disabled = false;
+
       updateButton();
+    }
+
+    function printGraph() {
+      const svg = document.getElementById("stationSvg");
+
+      if (!svg) {
+        showWarning("Generate the graph before printing.");
+        return;
+      }
+
+      window.print();
+    }
+
+    function saveGraphAsImage() {
+      const svg = document.getElementById("stationSvg");
+
+      if (!svg) {
+        showWarning("Generate the graph before saving.");
+        return;
+      }
+
+      const serializer = new XMLSerializer();
+      const svgText = serializer.serializeToString(svg);
+
+      const svgBlob = new Blob(
+        [svgText],
+        {
+          type: "image/svg+xml;charset=utf-8"
+        }
+      );
+
+      const url = URL.createObjectURL(svgBlob);
+      const image = new Image();
+
+      image.onload = function () {
+        const canvas = document.createElement("canvas");
+
+        canvas.width = 2480;
+        canvas.height = 3508;
+
+        const context = canvas.getContext("2d");
+
+        context.fillStyle = "#dff2d8";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+
+        context.drawImage(
+          image,
+          0,
+          0,
+          canvas.width,
+          canvas.height
+        );
+
+        URL.revokeObjectURL(url);
+
+        const pngUrl = canvas.toDataURL("image/png");
+
+        const downloadLink = document.createElement("a");
+        downloadLink.href = pngUrl;
+        downloadLink.download = "stationing-from-bows-graph.png";
+
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+      };
+
+      image.src = url;
     }
 
     updateButton();
