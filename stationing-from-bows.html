@@ -72,13 +72,6 @@
       color: var(--text-main);
     }
 
-    .small-note {
-      margin-top: 12px;
-      color: var(--text-muted);
-      font-size: 14px;
-      line-height: 1.5;
-    }
-
     .action-grid {
       display: grid;
       grid-template-columns: 1fr;
@@ -196,11 +189,7 @@
 </head>
 
 <body>
-  <a
-    href="index.html"
-    class="home-btn"
-    aria-label="Back to home"
-  >×</a>
+  <a href="index.html" class="home-btn" aria-label="Back to home">×</a>
 
   <div class="app-container">
     <h1 class="page-title">Stationing from Bows</h1>
@@ -404,18 +393,14 @@
       "turnSeconds"
     ];
 
-    document
-      .querySelectorAll(".basic-input")
-      .forEach((control) => {
-        control.addEventListener("input", handleBasicInputChange);
-      });
+    document.querySelectorAll(".basic-input").forEach((control) => {
+      control.addEventListener("input", handleBasicInputChange);
+    });
 
-    document
-      .querySelectorAll(".construction-input")
-      .forEach((control) => {
-        control.addEventListener("input", updateGraphButton);
-        control.addEventListener("change", updateGraphButton);
-      });
+    document.querySelectorAll(".construction-input").forEach((control) => {
+      control.addEventListener("input", updateGraphButton);
+      control.addEventListener("change", updateGraphButton);
+    });
 
     ctsBtn.addEventListener("click", calculateCTS);
     graphBtn.addEventListener("click", calculateGraph);
@@ -440,25 +425,17 @@
 
     function readNumber(id) {
       const text = document.getElementById(id).value.trim();
-
-      if (text === "") {
-        return Number.NaN;
-      }
-
-      return Number(text);
+      return text === "" ? Number.NaN : Number(text);
     }
 
     function getInputs() {
       return {
         guideCourse: readNumber("guideCourse"),
         guideSpeed: readNumber("guideSpeed"),
-
         finalBearing: readNumber("finalBearing"),
         finalRangeCables: readNumber("finalRange"),
-
         currentBearing: readNumber("currentBearing"),
         currentRangeCables: readNumber("currentRange"),
-
         ownSpeed: readNumber("ownSpeed")
       };
     }
@@ -466,17 +443,13 @@
     function getConstructionInputs() {
       return {
         wheelUsed: readNumber("wheelUsed"),
-
         advance: readNumber("advance"),
         transfer: readNumber("transfer"),
         advTransferUnit: document.getElementById("advTransferUnit").value,
-
         safetyMargin: readNumber("safetyMargin"),
         safetyUnit: document.getElementById("safetyUnit").value,
-
         turnMinutes: readNumber("turnMinutes"),
         turnSeconds: readNumber("turnSeconds"),
-
         surgeRate: readNumber("surgeRate"),
         accelerationRate: readNumber("accelerationRate")
       };
@@ -1007,7 +980,7 @@
 
       const guideRunStart = F;
 
-      const G = subtract(
+      const G = add(
         guideRunStart,
         multiply(guideUnits.along, guideRunNm)
       );
@@ -1354,9 +1327,6 @@
       const northArrowY1 = 34;
       const northArrowY2 = 18;
 
-      const guideRunStartX = FX;
-      const guideRunStartY = FY;
-
       const correctionLine =
         build.applicableLabel !== "E"
           ? `
@@ -1403,8 +1373,8 @@
 
           ${correctionLine}
 
-          ${makeLine(guideRunStartX, guideRunStartY, GX, GY, "#111", 0.5)}
-          ${renderCentreArrow(guideRunStartX, guideRunStartY, GX, GY, "#111")}
+          ${makeLine(FX, FY, GX, GY, "#111", 0.5)}
+          ${renderCentreArrow(FX, FY, GX, GY, "#111")}
 
           ${makeLine(GX, GY, BX, BY, "#8a1a1a", 0.5, "2 2")}
           ${makeText(
