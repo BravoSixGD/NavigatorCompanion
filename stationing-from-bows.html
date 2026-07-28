@@ -617,6 +617,7 @@
           y2="${y2}"
           stroke="${stroke}"
           stroke-width="${width}"
+          stroke-linecap="round"
           ${dash ? `stroke-dasharray="${dash}"` : ""}
         />
       `;
@@ -632,6 +633,54 @@
           fill="${fill}"
           font-family="Arial, sans-serif"
         >${text}</text>
+      `;
+    }
+
+    function makeMidArrow(x1, y1, x2, y2, fill) {
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      const length = Math.sqrt((dx * dx) + (dy * dy));
+
+      if (length < 0.001) {
+        return "";
+      }
+
+      const ux = dx / length;
+      const uy = dy / length;
+
+      const midX = (x1 + x2) / 2;
+      const midY = (y1 + y2) / 2;
+
+      const arrowLength = 1.2;
+      const arrowWidth = 1.0;
+
+      const tipX = midX + (ux * arrowLength * 0.5);
+      const tipY = midY + (uy * arrowLength * 0.5);
+
+      const baseX = midX - (ux * arrowLength * 0.5);
+      const baseY = midY - (uy * arrowLength * 0.5);
+
+      const nx = -uy;
+      const ny = ux;
+
+      const leftX = baseX + (nx * arrowWidth * 0.5);
+      const leftY = baseY + (ny * arrowWidth * 0.5);
+
+      const rightX = baseX - (nx * arrowWidth * 0.5);
+      const rightY = baseY - (ny * arrowWidth * 0.5);
+
+      return `
+        <polygon
+          points="${tipX},${tipY} ${leftX},${leftY} ${rightX},${rightY}"
+          fill="${fill}"
+        />
+      `;
+    }
+
+    function makeLineWithMidArrow(x1, y1, x2, y2, stroke, width, dash = "") {
+      return `
+        ${makeLine(x1, y1, x2, y2, stroke, width, dash)}
+        ${makeMidArrow(x1, y1, x2, y2, stroke)}
       `;
     }
 
@@ -680,17 +729,15 @@
         <circle
           cx="${x}"
           cy="${y}"
-          r="1.8"
+          r="0.5"
           fill="${fill}"
-          stroke="#111"
-          stroke-width="0.35"
         />
 
         ${makeText(
           x + labelXOffset,
           y + labelYOffset,
           label,
-          3.2,
+          3.0,
           labelXOffset >= 0 ? "start" : "end",
           "#111"
         )}
@@ -803,6 +850,9 @@
       const northArrowY1 = 34;
       const northArrowY2 = 18;
 
+      const movementLineWidth = 1.0;
+      const positionLineWidth = 1.0;
+
       const svg = `
         <svg
           id="stationSvg"
@@ -812,20 +862,6 @@
           height="297mm"
           viewBox="0 0 210 297"
         >
-          <defs>
-            <marker
-              id="arrowEnd"
-              markerWidth="5"
-              markerHeight="5"
-              refX="5"
-              refY="2.5"
-              orient="auto"
-              markerUnits="strokeWidth"
-            >
-              <path d="M 0 0 L 5 2.5 L 0 5 Z" fill="#111" />
-            </marker>
-          </defs>
-
           ${renderGrid()}
 
           ${makeText(
@@ -852,15 +888,14 @@
             "end"
           )}
 
-          <line
-            x1="${northArrowX}"
-            y1="${northArrowY1}"
-            x2="${northArrowX}"
-            y2="${northArrowY2}"
-            stroke="#111"
-            stroke-width="0.6"
-            marker-end="url(#arrowEnd)"
-          />
+          ${makeLineWithMidArrow(
+            northArrowX,
+            northArrowY1,
+            northArrowX,
+            northArrowY2,
+            "#111",
+            1.0
+          )}
 
           ${makeText(
             northArrowX,
@@ -870,39 +905,37 @@
             "middle"
           )}
 
-          <line
-            x1="${guideStartX}"
-            y1="${guideStartY}"
-            x2="${guideFinalX}"
-            y2="${guideFinalY}"
-            stroke="#111"
-            stroke-width="0.65"
-            marker-end="url(#arrowEnd)"
-          />
+          ${makeLineWithMidArrow(
+            guideStartX,
+            guideStartY,
+            guideFinalX,
+            guideFinalY,
+            "#111",
+            movementLineWidth
+          )}
 
           ${makeText(
             (guideStartX + guideFinalX) / 2,
             (guideStartY + guideFinalY) / 2 - 3,
             "Guide movement",
-            3.1,
+            3.0,
             "middle"
           )}
 
-          <line
-            x1="${ownCurrentX}"
-            y1="${ownCurrentY}"
-            x2="${ownFinalX}"
-            y2="${ownFinalY}"
-            stroke="#0b4fbd"
-            stroke-width="0.75"
-            marker-end="url(#arrowEnd)"
-          />
+          ${makeLineWithMidArrow(
+            ownCurrentX,
+            ownCurrentY,
+            ownFinalX,
+            ownFinalY,
+            "#0b4fbd",
+            movementLineWidth
+          )}
 
           ${makeText(
             (ownCurrentX + ownFinalX) / 2,
             (ownCurrentY + ownFinalY) / 2 + 5,
             `Own CTS ${formatBearingHalfDegree(solution.courseToSteer)}`,
-            3.1,
+            3.0,
             "middle",
             "#0b4fbd"
           )}
@@ -913,7 +946,7 @@
             ownCurrentX,
             ownCurrentY,
             "#444",
-            0.35,
+            positionLineWidth,
             "2 2"
           )}
 
@@ -921,7 +954,7 @@
             (guideStartX + ownCurrentX) / 2,
             (guideStartY + ownCurrentY) / 2 - 2,
             "Current position from guide",
-            2.9,
+            2.8,
             "middle",
             "#444"
           )}
@@ -932,7 +965,7 @@
             ownFinalX,
             ownFinalY,
             "#8a1a1a",
-            0.35,
+            positionLineWidth,
             "2 2"
           )}
 
@@ -940,7 +973,7 @@
             (guideFinalX + ownFinalX) / 2,
             (guideFinalY + ownFinalY) / 2 - 2,
             "Final station from guide",
-            2.9,
+            2.8,
             "middle",
             "#8a1a1a"
           )}
@@ -950,8 +983,8 @@
             guideStartY,
             "Guide start",
             "#111",
-            4,
-            -4
+            2,
+            -2
           )}
 
           ${renderPoint(
@@ -959,8 +992,8 @@
             guideFinalY,
             "Guide final",
             "#111",
-            4,
-            -4
+            2,
+            -2
           )}
 
           ${renderPoint(
@@ -968,8 +1001,8 @@
             ownCurrentY,
             "Own current",
             "#0b4fbd",
-            4,
-            -4
+            2,
+            -2
           )}
 
           ${renderPoint(
@@ -977,8 +1010,8 @@
             ownFinalY,
             "Own final station",
             "#8a1a1a",
-            4,
-            -4
+            2,
+            -2
           )}
 
           <rect
@@ -991,13 +1024,13 @@
             stroke-width="0.25"
           />
 
-          <circle cx="17" cy="276" r="1.5" fill="#111" />
+          <circle cx="17" cy="276" r="0.5" fill="#111" />
           ${makeText(22, 277, "Guide ship", 3, "start")}
 
-          <circle cx="17" cy="283" r="1.5" fill="#0b4fbd" />
+          <circle cx="17" cy="283" r="0.5" fill="#0b4fbd" />
           ${makeText(22, 284, "Own ship", 3, "start")}
 
-          <circle cx="58" cy="283" r="1.5" fill="#8a1a1a" />
+          <circle cx="58" cy="283" r="0.5" fill="#8a1a1a" />
           ${makeText(63, 284, "Final station", 3, "start")}
         </svg>
       `;
