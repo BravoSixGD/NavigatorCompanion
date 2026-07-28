@@ -19,6 +19,10 @@
       gap: 12px;
     }
 
+    .ship-section {
+      margin-bottom: 18px;
+    }
+
     .section-subtitle {
       font-size: clamp(16px, 3vw, 19px);
       font-weight: bold;
@@ -28,25 +32,21 @@
       border-bottom: 1px solid var(--border-soft);
     }
 
-    .input-section {
-      margin-bottom: 18px;
-    }
-
     .unit-row {
       display: grid;
-      grid-template-columns: 1fr 0.6fr;
+      grid-template-columns: 1fr 0.55fr;
       gap: 10px;
       align-items: end;
     }
 
-    .output-grid {
+    .summary-grid {
       display: grid;
       grid-template-columns: 1fr;
       gap: 12px;
       margin-top: 12px;
     }
 
-    .output-box {
+    .summary-box {
       background: var(--bg-card);
       border: 1px solid var(--border-main);
       border-radius: 12px;
@@ -54,14 +54,14 @@
       line-height: 1.5;
     }
 
-    .output-label {
+    .summary-label {
       color: var(--text-muted);
       font-size: 14px;
       margin-bottom: 5px;
     }
 
-    .output-value {
-      font-size: clamp(18px, 4vw, 25px);
+    .summary-value {
+      font-size: clamp(18px, 4vw, 24px);
       font-weight: bold;
       color: var(--text-main);
     }
@@ -115,12 +115,19 @@
       background: #dff2d8;
     }
 
+    .note {
+      color: var(--text-muted);
+      font-size: 14px;
+      line-height: 1.5;
+      margin-top: 12px;
+    }
+
     @media (min-width: 760px) {
       .input-grid {
         grid-template-columns: repeat(2, 1fr);
       }
 
-      .output-grid {
+      .summary-grid {
         grid-template-columns: repeat(2, 1fr);
       }
 
@@ -179,105 +186,107 @@
 </head>
 
 <body>
-  <a href="index.html" class="home-btn" aria-label="Back to home">×</a>
+  <a
+    href="index.html"
+    class="home-btn"
+    aria-label="Back to home"
+  >×</a>
 
   <div class="app-container">
     <h1 class="page-title">RAS Approach Graph</h1>
 
     <div class="card">
-      <div class="card-title">RAS Approach Data</div>
+      <div class="card-title">Inputs</div>
 
-      <div class="input-section">
-        <div class="section-subtitle">Delivery Ship Data</div>
-
-        <div class="input-grid">
-          <div>
-            <label>Delivery ship LOA in metres</label>
-            <input id="deliveryLoa" type="number" inputmode="decimal" step="0.1" placeholder="180">
-          </div>
-
-          <div>
-            <label>Delivery ship beam in metres</label>
-            <input id="deliveryBeam" type="number" inputmode="decimal" step="0.1" placeholder="25">
-          </div>
-
-          <div>
-            <label>Delivery stem to standard position in metres</label>
-            <input id="deliveryStandard" type="number" inputmode="decimal" step="0.1" placeholder="70">
-          </div>
-
-          <div>
-            <label>Delivery stem to RAS point in metres</label>
-            <input id="deliveryRas" type="number" inputmode="decimal" step="0.1" placeholder="90">
-          </div>
-        </div>
-      </div>
-
-      <div class="input-section">
+      <div class="ship-section">
         <div class="section-subtitle">Receiving Ship Data</div>
 
         <div class="input-grid">
           <div>
-            <label>Receiving ship LOA in metres</label>
-            <input id="receivingLoa" type="number" inputmode="decimal" step="0.1" placeholder="140">
+            <label>Length Overall of Receiving Ship (m)</label>
+            <input id="rLOA" type="number" inputmode="decimal" step="0.1" placeholder="160">
           </div>
 
           <div>
-            <label>Receiving ship beam in metres</label>
-            <input id="receivingBeam" type="number" inputmode="decimal" step="0.1" placeholder="20">
+            <label>Stem to Standard of Receiving Ship (m)</label>
+            <input id="rStandard" type="number" inputmode="decimal" step="0.1" placeholder="45">
           </div>
 
           <div>
-            <label>Receiving stem to standard position in metres</label>
-            <input id="receivingStandard" type="number" inputmode="decimal" step="0.1" placeholder="55">
+            <label>Stem to RAS Point of Receiving Ship (m)</label>
+            <input id="rRAS" type="number" inputmode="decimal" step="0.1" placeholder="75">
           </div>
 
           <div>
-            <label>Receiving stem to RAS point in metres</label>
-            <input id="receivingRas" type="number" inputmode="decimal" step="0.1" placeholder="75">
+            <label>Beam of Receiving Ship (m)</label>
+            <input id="rBeam" type="number" inputmode="decimal" step="0.1" placeholder="22">
           </div>
         </div>
       </div>
 
-      <div class="input-section">
-        <div class="section-subtitle">Approach Data</div>
+      <div class="ship-section">
+        <div class="section-subtitle">Delivery Ship Data</div>
 
         <div class="input-grid">
+          <div>
+            <label>Length Overall of Delivery Ship (m)</label>
+            <input id="dLOA" type="number" inputmode="decimal" step="0.1" placeholder="200">
+          </div>
+
+          <div>
+            <label>Stem to Standard of Delivery Ship (m)</label>
+            <input id="dStandard" type="number" inputmode="decimal" step="0.1" placeholder="60">
+          </div>
+
+          <div>
+            <label>Stem to RAS Point of Delivery Ship (m)</label>
+            <input id="dRAS" type="number" inputmode="decimal" step="0.1" placeholder="90">
+          </div>
+
+          <div>
+            <label>Beam of Delivery Ship (m)</label>
+            <input id="dBeam" type="number" inputmode="decimal" step="0.1" placeholder="30">
+          </div>
+        </div>
+      </div>
+
+      <div class="ship-section">
+        <div class="section-subtitle">RAS Approach Data</div>
+
+        <div class="input-grid">
+          <div>
+            <label>RAS Speed K1 (kn)</label>
+            <input id="rasSpeed" type="number" inputmode="decimal" step="0.1" placeholder="12">
+          </div>
+
+          <div>
+            <label>Approach Speed K2 (kn)</label>
+            <input id="approachSpeed" type="number" inputmode="decimal" step="0.1" placeholder="15">
+          </div>
+
+          <div>
+            <label>Surge Rate of Receiving Ship (yards per kn)</label>
+            <input id="surgeRate" type="number" inputmode="decimal" step="0.1" placeholder="80">
+          </div>
+
           <div class="unit-row">
             <div>
-              <label>Required lateral separation</label>
-              <input id="separation" type="number" inputmode="decimal" step="0.1" placeholder="40">
+              <label>Required Lateral Separation</label>
+              <input id="lateralSeparation" type="number" inputmode="decimal" step="0.1" placeholder="60">
             </div>
 
             <div>
               <label>Unit</label>
-              <select id="separationUnit">
-                <option value="metres">metres</option>
-                <option value="feet">feet</option>
+              <select id="lateralUnit">
+                <option value="m">m</option>
+                <option value="ft">ft</option>
               </select>
             </div>
-          </div>
-
-          <div>
-            <label>Delivery ship RAS speed in knots</label>
-            <input id="deliverySpeed" type="number" inputmode="decimal" step="0.1" placeholder="12">
-          </div>
-
-          <div>
-            <label>Receiving ship approach speed in knots</label>
-            <input id="receivingSpeed" type="number" inputmode="decimal" step="0.1" placeholder="15">
-          </div>
-
-          <div>
-            <label>Surge rate in yards per knot</label>
-            <input id="surgeRate" type="number" inputmode="decimal" step="0.1" placeholder="80">
           </div>
         </div>
       </div>
 
-      <button id="goBtn" class="go-btn" type="button">
-        GO
-      </button>
+      <button id="goBtn" class="go-btn" type="button">GO</button>
 
       <div class="action-grid">
         <button id="printBtn" class="action-btn" type="button" disabled>
@@ -290,7 +299,7 @@
       </div>
 
       <div id="result" class="result">
-        Enter values to generate RAS approach graph.
+        Enter ship data and approach data to generate RAS graph.
       </div>
     </div>
   </div>
@@ -298,33 +307,32 @@
   <script>
     "use strict";
 
-    const METRES_PER_FOOT = 0.3048;
-    const METRES_PER_YARD = 0.9144;
-
     const goBtn = document.getElementById("goBtn");
     const printBtn = document.getElementById("printBtn");
     const saveBtn = document.getElementById("saveBtn");
     const resultBox = document.getElementById("result");
 
     const inputIds = [
-      "deliveryLoa",
-      "deliveryBeam",
-      "deliveryStandard",
-      "deliveryRas",
-      "receivingLoa",
-      "receivingBeam",
-      "receivingStandard",
-      "receivingRas",
-      "separation",
-      "deliverySpeed",
-      "receivingSpeed",
-      "surgeRate"
+      "rLOA",
+      "rStandard",
+      "rRAS",
+      "rBeam",
+      "dLOA",
+      "dStandard",
+      "dRAS",
+      "dBeam",
+      "rasSpeed",
+      "approachSpeed",
+      "surgeRate",
+      "lateralSeparation"
     ];
 
-    document.querySelectorAll("input, select").forEach((control) => {
-      control.addEventListener("input", handleInputChange);
-      control.addEventListener("change", handleInputChange);
-    });
+    document
+      .querySelectorAll("input, select")
+      .forEach((control) => {
+        control.addEventListener("input", handleInputChange);
+        control.addEventListener("change", handleInputChange);
+      });
 
     goBtn.addEventListener("click", calculate);
     printBtn.addEventListener("click", printGraph);
@@ -336,133 +344,127 @@
       saveBtn.disabled = true;
     }
 
-    function readNumber(id) {
-      const text = document.getElementById(id).value.trim();
-      return text === "" ? Number.NaN : Number(text);
-    }
-
-    function getInputs() {
-      return {
-        deliveryLoa: readNumber("deliveryLoa"),
-        deliveryBeam: readNumber("deliveryBeam"),
-        deliveryStandard: readNumber("deliveryStandard"),
-        deliveryRas: readNumber("deliveryRas"),
-
-        receivingLoa: readNumber("receivingLoa"),
-        receivingBeam: readNumber("receivingBeam"),
-        receivingStandard: readNumber("receivingStandard"),
-        receivingRas: readNumber("receivingRas"),
-
-        separation: readNumber("separation"),
-        separationUnit: document.getElementById("separationUnit").value,
-
-        deliverySpeed: readNumber("deliverySpeed"),
-        receivingSpeed: readNumber("receivingSpeed"),
-        surgeRate: readNumber("surgeRate")
-      };
+    function valueOf(id) {
+      return Number(document.getElementById(id).value);
     }
 
     function formatNumber(value, decimals = 2) {
       return Number(value).toFixed(decimals);
     }
 
-    function trimNumber(value, decimals = 1) {
-      return Number(value)
-        .toFixed(decimals)
-        .replace(/\.0$/, "");
+    function formatMeters(value) {
+      return `${formatNumber(value, 2)} m`;
     }
 
-    function getSeparationMetres(data) {
-      if (data.separationUnit === "feet") {
-        return data.separation * METRES_PER_FOOT;
-      }
+    function getInputs() {
+      const lateralValue = valueOf("lateralSeparation");
+      const lateralUnit = document.getElementById("lateralUnit").value;
 
-      return data.separation;
+      const lateralSeparationM =
+        lateralUnit === "ft"
+          ? lateralValue * 0.3048
+          : lateralValue;
+
+      return {
+        receiving: {
+          loa: valueOf("rLOA"),
+          standard: valueOf("rStandard"),
+          ras: valueOf("rRAS"),
+          beam: valueOf("rBeam")
+        },
+
+        delivery: {
+          loa: valueOf("dLOA"),
+          standard: valueOf("dStandard"),
+          ras: valueOf("dRAS"),
+          beam: valueOf("dBeam")
+        },
+
+        rasSpeed: valueOf("rasSpeed"),
+        approachSpeed: valueOf("approachSpeed"),
+        surgeRateYardsPerKn: valueOf("surgeRate"),
+        lateralSeparationM
+      };
     }
 
     function getValidationMessage() {
-      const data = getInputs();
-
       for (const id of inputIds) {
-        const value = readNumber(id);
+        const value = valueOf(id);
 
         if (!Number.isFinite(value)) {
           return "Complete all input fields.";
         }
       }
 
-      if (data.deliveryLoa <= 0 || data.receivingLoa <= 0) {
-        return "Recheck ship LOA values.";
+      const data = getInputs();
+      const r = data.receiving;
+      const d = data.delivery;
+
+      if (r.loa <= 0 || d.loa <= 0) {
+        return "Recheck LOA values.";
       }
 
-      if (data.deliveryBeam <= 0 || data.receivingBeam <= 0) {
-        return "Recheck ship beam values.";
+      if (r.beam <= 0 || d.beam <= 0) {
+        return "Recheck beam values.";
       }
 
-      if (data.deliveryStandard < 0 || data.deliveryStandard > data.deliveryLoa) {
-        return "Delivery standard position must be within delivery ship LOA.";
+      if (r.standard < 0 || r.standard > r.loa) {
+        return "Recheck receiving ship stem to standard distance.";
       }
 
-      if (data.deliveryRas < 0 || data.deliveryRas > data.deliveryLoa) {
-        return "Delivery RAS point must be within delivery ship LOA.";
+      if (d.standard < 0 || d.standard > d.loa) {
+        return "Recheck delivery ship stem to standard distance.";
       }
 
-      if (data.receivingStandard < 0 || data.receivingStandard > data.receivingLoa) {
-        return "Receiving standard position must be within receiving ship LOA.";
+      if (r.ras < 0 || r.ras > r.loa) {
+        return "Recheck receiving ship stem to RAS point distance.";
       }
 
-      if (data.receivingRas < 0 || data.receivingRas > data.receivingLoa) {
-        return "Receiving RAS point must be within receiving ship LOA.";
+      if (d.ras < 0 || d.ras > d.loa) {
+        return "Recheck delivery ship stem to RAS point distance.";
       }
 
-      if (data.separation <= 0) {
-        return "Recheck required lateral separation.";
+      if (data.rasSpeed <= 0) {
+        return "Recheck RAS speed K1.";
       }
 
-      if (data.deliverySpeed <= 0) {
-        return "Recheck delivery ship RAS speed.";
+      if (data.approachSpeed <= 0) {
+        return "Recheck approach speed K2.";
       }
 
-      if (data.receivingSpeed <= 0) {
-        return "Recheck receiving ship approach speed.";
+      if (data.approachSpeed <= data.rasSpeed) {
+        return "Approach speed K2 must be greater than RAS speed K1.";
       }
 
-      if (data.receivingSpeed <= data.deliverySpeed) {
-        return "Receiving ship approach speed must be greater than delivery ship RAS speed.";
-      }
-
-      if (data.surgeRate < 0) {
+      if (data.surgeRateYardsPerKn < 0) {
         return "Recheck surge rate.";
+      }
+
+      if (data.lateralSeparationM <= 0) {
+        return "Recheck required lateral separation.";
       }
 
       return "";
     }
 
+    function isValid() {
+      return getValidationMessage() === "";
+    }
+
     function updateButton() {
-      goBtn.classList.toggle(
-        "valid",
-        getValidationMessage() === ""
-      );
+      goBtn.classList.toggle("valid", isValid());
     }
 
-    function showWarning(message) {
-      resultBox.innerHTML = `<span class="warning">${message}</span>`;
-      printBtn.disabled = true;
-      saveBtn.disabled = true;
-    }
-
-    function niceCeiling(value) {
+    function roundScaleUp(value) {
       if (value <= 0) return 1;
 
-      const exponent = Math.floor(Math.log10(value));
-      const base = Math.pow(10, exponent);
-      const normal = value / base;
+      let step = 0.5;
 
-      if (normal <= 1) return 1 * base;
-      if (normal <= 2) return 2 * base;
-      if (normal <= 5) return 5 * base;
+      if (value > 20) step = 1;
+      if (value > 50) step = 2;
+      if (value > 100) step = 5;
 
-      return 10 * base;
+      return Math.ceil(value / step) * step;
     }
 
     function makeLine(x1, y1, x2, y2, stroke, width, dash = "") {
@@ -474,13 +476,12 @@
           y2="${y2}"
           stroke="${stroke}"
           stroke-width="${width}"
-          stroke-linecap="round"
           ${dash ? `stroke-dasharray="${dash}"` : ""}
         />
       `;
     }
 
-    function makeText(x, y, text, size, anchor = "middle", fill = "#111", weight = "normal") {
+    function makeText(x, y, text, size, anchor = "middle", fill = "#111") {
       return `
         <text
           x="${x}"
@@ -488,7 +489,6 @@
           font-size="${size}"
           text-anchor="${anchor}"
           fill="${fill}"
-          font-weight="${weight}"
           font-family="Arial, sans-serif"
         >${text}</text>
       `;
@@ -535,15 +535,15 @@
     }
 
     function shipPath(cx, stemY, loa, beam) {
+      const shoulder = Math.min(loa * 0.10, beam * 1.25);
       const halfBeam = beam / 2;
-      const shoulderY = stemY + Math.min(loa * 0.12, 20);
 
       return `
         M ${cx} ${stemY}
-        L ${cx + halfBeam} ${shoulderY}
+        L ${cx + halfBeam} ${stemY + shoulder}
         L ${cx + halfBeam} ${stemY + loa}
         L ${cx - halfBeam} ${stemY + loa}
-        L ${cx - halfBeam} ${shoulderY}
+        L ${cx - halfBeam} ${stemY + shoulder}
         Z
       `;
     }
@@ -626,8 +626,7 @@
           label,
           4.2,
           "middle",
-          stroke,
-          "bold"
+          stroke
         )}
 
         ${makeText(
@@ -658,123 +657,73 @@
       `;
     }
 
-    function renderCentreArrow(x1, y1, x2, y2, colour) {
-      const dx = x2 - x1;
-      const dy = y2 - y1;
-      const length = Math.sqrt((dx * dx) + (dy * dy));
+    function renderGraph(data) {
+      const r = data.receiving;
+      const d = data.delivery;
 
-      if (length < 0.001) {
-        return "";
-      }
-
-      const ux = dx / length;
-      const uy = dy / length;
-
-      const midX = (x1 + x2) / 2;
-      const midY = (y1 + y2) / 2;
-
-      const arrowLength = 1.1;
-      const arrowWidth = 0.9;
-
-      const tipX = midX + (ux * arrowLength / 2);
-      const tipY = midY + (uy * arrowLength / 2);
-
-      const baseX = midX - (ux * arrowLength / 2);
-      const baseY = midY - (uy * arrowLength / 2);
-
-      const perpX = -uy;
-      const perpY = ux;
-
-      const leftX = baseX + (perpX * arrowWidth / 2);
-      const leftY = baseY + (perpY * arrowWidth / 2);
-
-      const rightX = baseX - (perpX * arrowWidth / 2);
-      const rightY = baseY - (perpY * arrowWidth / 2);
-
-      return `
-        <polygon
-          points="${tipX},${tipY} ${leftX},${leftY} ${rightX},${rightY}"
-          fill="${colour}"
-          stroke="${colour}"
-          stroke-width="0.1"
-        />
-      `;
-    }
-
-    function renderRasGraph(data, build) {
       const a4WidthMm = 210;
       const a4HeightMm = 297;
-      const paddingMm = 14;
-
-      const delivery = {
-        cx: build.deliveryCx,
-        stemY: build.deliveryStemY,
-        loa: data.deliveryLoa,
-        beam: data.deliveryBeam
-      };
-
-      const receivingOrder = {
-        cx: build.receivingCx,
-        stemY: build.receivingOrderStemY,
-        loa: data.receivingLoa,
-        beam: data.receivingBeam
-      };
-
-      const receivingFinal = {
-        cx: build.receivingCx,
-        stemY: build.receivingFinalStemY,
-        loa: data.receivingLoa,
-        beam: data.receivingBeam
-      };
-
-      const xValues = [
-        delivery.cx - delivery.beam / 2,
-        delivery.cx + delivery.beam / 2,
-        receivingOrder.cx - receivingOrder.beam / 2,
-        receivingOrder.cx + receivingOrder.beam / 2,
-        receivingFinal.cx - receivingFinal.beam / 2,
-        receivingFinal.cx + receivingFinal.beam / 2
-      ];
-
-      const yValues = [
-        delivery.stemY,
-        delivery.stemY + delivery.loa,
-        receivingOrder.stemY,
-        receivingOrder.stemY + receivingOrder.loa,
-        receivingFinal.stemY,
-        receivingFinal.stemY + receivingFinal.loa
-      ];
-
-      let minX = Math.min(...xValues);
-      let maxX = Math.max(...xValues);
-      let minY = Math.min(...yValues);
-      let maxY = Math.max(...yValues);
-
-      const widthM = Math.max(10, maxX - minX);
-      const heightM = Math.max(10, maxY - minY);
-
-      const marginM = Math.max(
-        20,
-        Math.max(widthM, heightM) * 0.18
-      );
-
-      minX -= marginM;
-      maxX += marginM;
-      minY -= marginM;
-      maxY += marginM;
-
-      const graphWidthM = maxX - minX;
-      const graphHeightM = maxY - minY;
+      const paddingMm = 12;
 
       const usableWidthCm = (a4WidthMm - (2 * paddingMm)) / 10;
       const usableHeightCm = (a4HeightMm - (2 * paddingMm)) / 10;
 
-      const scaleMPerCm = niceCeiling(
-        Math.max(
-          graphWidthM / usableWidthCm,
-          graphHeightM / usableHeightCm
-        ) * 1.03
+      const speedAdvantage = data.approachSpeed - data.rasSpeed;
+      const surgeRateMPerKn = data.surgeRateYardsPerKn * 0.9144;
+      const surgeDistance = surgeRateMPerKn * speedAdvantage;
+
+      const centrelineSeparation =
+        (r.beam / 2) +
+        data.lateralSeparationM +
+        (d.beam / 2);
+
+      const receivingCx = 0;
+      const deliveryCx = centrelineSeparation;
+
+      const deliveryStemY = 0;
+      const deliveryRasY = deliveryStemY + d.ras;
+
+      const receivingFinalStemY = deliveryRasY - r.ras;
+      const receivingOrderStemY = receivingFinalStemY + surgeDistance;
+
+      const marginM = Math.max(
+        10,
+        Math.max(r.beam, d.beam, data.lateralSeparationM) * 0.35
       );
+
+      const annotationMarginM = 20;
+
+      const minX = Math.min(
+        receivingCx - (r.beam / 2),
+        deliveryCx - (d.beam / 2)
+      ) - marginM - annotationMarginM;
+
+      const maxX = Math.max(
+        receivingCx + (r.beam / 2),
+        deliveryCx + (d.beam / 2)
+      ) + marginM + annotationMarginM;
+
+      const minY = Math.min(
+        deliveryStemY,
+        receivingFinalStemY,
+        receivingOrderStemY
+      ) - marginM - annotationMarginM;
+
+      const maxY = Math.max(
+        deliveryStemY + d.loa,
+        receivingFinalStemY + r.loa,
+        receivingOrderStemY + r.loa
+      ) + marginM + annotationMarginM;
+
+      const graphWidthM = maxX - minX;
+      const graphHeightM = maxY - minY;
+
+      const rawScale = Math.max(
+        graphWidthM / usableWidthCm,
+        graphHeightM / usableHeightCm
+      );
+
+      const scaleMPerCm = roundScaleUp(rawScale * 1.02);
 
       const contentWidthMm = (graphWidthM / scaleMPerCm) * 10;
       const contentHeightMm = (graphHeightM / scaleMPerCm) * 10;
@@ -782,31 +731,29 @@
       const offsetX = (a4WidthMm - contentWidthMm) / 2;
       const offsetY = (a4HeightMm - contentHeightMm) / 2;
 
-      function x(value) {
-        return offsetX + ((value - minX) / scaleMPerCm) * 10;
+      function x(valueM) {
+        return offsetX + ((valueM - minX) / scaleMPerCm) * 10;
       }
 
-      function y(value) {
-        return offsetY + ((value - minY) / scaleMPerCm) * 10;
+      function y(valueM) {
+        return offsetY + ((valueM - minY) / scaleMPerCm) * 10;
       }
 
-      function scaleLength(value) {
-        return (value / scaleMPerCm) * 10;
+      function length(valueM) {
+        return (valueM / scaleMPerCm) * 10;
       }
 
-      const deliveryRasY = build.deliveryStemY + data.deliveryRas;
-      const receivingOrderRasY = build.receivingOrderStemY + data.receivingRas;
-      const receivingFinalRasY = build.receivingFinalStemY + data.receivingRas;
+      const receivingRasXOrder = x(receivingCx + r.beam / 2);
+      const receivingRasYOrder = y(receivingOrderStemY + r.ras);
 
-      const deliveryInnerSideX = build.deliveryCx - (data.deliveryBeam / 2);
-      const receivingInnerSideX = build.receivingCx + (data.receivingBeam / 2);
+      const receivingRasXFinal = x(receivingCx + r.beam / 2);
+      const receivingRasYFinal = y(receivingFinalStemY + r.ras);
 
-      const orderReceivingRasX = build.receivingCx + (data.receivingBeam / 2);
-      const deliveryRasX = build.deliveryCx - (data.deliveryBeam / 2);
+      const deliveryRasX = x(deliveryCx - d.beam / 2);
+      const deliveryRasYmm = y(deliveryRasY);
 
-      const northArrowX = 186;
-      const northArrowY1 = 34;
-      const northArrowY2 = 18;
+      const lateralDimY = Math.max(22, deliveryRasYmm - 12);
+      const surgeDimX = receivingRasXOrder + 20;
 
       const svg = `
         <svg
@@ -817,12 +764,160 @@
           height="297mm"
           viewBox="0 0 210 297"
         >
+          <defs>
+            <marker
+              id="arrowEnd"
+              markerWidth="5"
+              markerHeight="5"
+              refX="5"
+              refY="2.5"
+              orient="auto"
+              markerUnits="strokeWidth"
+            >
+              <path d="M 0 0 L 5 2.5 L 0 5 Z" fill="#111" />
+            </marker>
+
+            <marker
+              id="arrowStart"
+              markerWidth="5"
+              markerHeight="5"
+              refX="0"
+              refY="2.5"
+              orient="auto"
+              markerUnits="strokeWidth"
+            >
+              <path d="M 5 0 L 0 2.5 L 5 5 Z" fill="#111" />
+            </marker>
+          </defs>
+
           ${renderGrid()}
+
+          ${renderShip({
+            cx: x(deliveryCx),
+            stemY: y(deliveryStemY),
+            loa: length(d.loa),
+            beam: length(d.beam),
+            standard: length(d.standard),
+            ras: length(d.ras),
+            label: "Delivery ship",
+            rasSide: "left",
+            fill: "#fff3dc",
+            stroke: "#1a1a1a",
+            dashed: false,
+            opacity: 1
+          })}
+
+          ${renderShip({
+            cx: x(receivingCx),
+            stemY: y(receivingFinalStemY),
+            loa: length(r.loa),
+            beam: length(r.beam),
+            standard: length(r.standard),
+            ras: length(r.ras),
+            label: "Final position",
+            rasSide: "right",
+            fill: "#ffffff",
+            stroke: "#555555",
+            dashed: true,
+            opacity: 0.65
+          })}
+
+          ${renderShip({
+            cx: x(receivingCx),
+            stemY: y(receivingOrderStemY),
+            loa: length(r.loa),
+            beam: length(r.beam),
+            standard: length(r.standard),
+            ras: length(r.ras),
+            label: "Receiving ship",
+            rasSide: "right",
+            fill: "#dbeaff",
+            stroke: "#1a1a1a",
+            dashed: false,
+            opacity: 1
+          })}
+
+          <line
+            x1="${x(receivingCx + r.beam / 2)}"
+            y1="${lateralDimY}"
+            x2="${x(deliveryCx - d.beam / 2)}"
+            y2="${lateralDimY}"
+            stroke="#111"
+            stroke-width="0.45"
+            marker-start="url(#arrowStart)"
+            marker-end="url(#arrowEnd)"
+          />
+
+          ${makeText(
+            (x(receivingCx + r.beam / 2) + x(deliveryCx - d.beam / 2)) / 2,
+            lateralDimY - 3,
+            `Z = ${formatNumber(data.lateralSeparationM, 1)} m`,
+            3.2
+          )}
+
+          <line
+            x1="${surgeDimX}"
+            y1="${receivingRasYOrder}"
+            x2="${surgeDimX}"
+            y2="${receivingRasYFinal}"
+            stroke="#111"
+            stroke-width="0.45"
+            marker-start="url(#arrowStart)"
+            marker-end="url(#arrowEnd)"
+          />
+
+          ${makeLine(
+            receivingRasXOrder,
+            receivingRasYOrder,
+            surgeDimX,
+            receivingRasYOrder,
+            "#111",
+            0.25,
+            "2 2"
+          )}
+
+          ${makeLine(
+            receivingRasXFinal,
+            receivingRasYFinal,
+            surgeDimX,
+            receivingRasYFinal,
+            "#111",
+            0.25,
+            "2 2"
+          )}
+
+          ${makeText(
+            surgeDimX + 3,
+            (receivingRasYOrder + receivingRasYFinal) / 2,
+            `S = ${formatNumber(surgeDistance, 1)} m`,
+            3.2,
+            "start"
+          )}
+
+          ${makeLine(
+            receivingRasXFinal,
+            receivingRasYFinal,
+            deliveryRasX,
+            deliveryRasYmm,
+            "#111",
+            0.3,
+            "2 2"
+          )}
+
+          <circle
+            cx="${receivingRasXFinal}"
+            cy="${receivingRasYFinal}"
+            r="1.3"
+            fill="none"
+            stroke="#111"
+            stroke-width="0.35"
+            stroke-dasharray="1 1"
+          />
 
           ${makeText(
             12,
             10,
-            `Scale: 1 cm = ${formatNumber(scaleMPerCm, 1)} m`,
+            `Scale: 1 cm = ${formatNumber(scaleMPerCm, 2)} m`,
             4,
             "start"
           )}
@@ -830,182 +925,35 @@
           ${makeText(
             12,
             16,
-            `1 mm = ${formatNumber(scaleMPerCm / 10, 1)} m`,
+            `1 mm = ${formatNumber(scaleMPerCm / 10, 2)} m`,
             3.2,
             "start"
           )}
 
-          ${makeLine(
-            northArrowX,
-            northArrowY1,
-            northArrowX,
-            northArrowY2,
-            "#111",
-            0.5
-          )}
-
-          ${renderCentreArrow(
-            northArrowX,
-            northArrowY1,
-            northArrowX,
-            northArrowY2,
-            "#111"
-          )}
-
           ${makeText(
-            northArrowX,
-            northArrowY2 - 3,
-            "N",
+            198,
+            10,
+            "RAS Approach Graph",
             4,
-            "middle"
-          )}
-
-          <g transform="translate(${x(0)}, ${y(0)}) scale(${scaleLength(1)})">
-            ${renderShip({
-              cx: build.deliveryCx,
-              stemY: build.deliveryStemY,
-              loa: data.deliveryLoa,
-              beam: data.deliveryBeam,
-              standard: data.deliveryStandard,
-              ras: data.deliveryRas,
-              label: "Delivery ship",
-              rasSide: "left",
-              fill: "rgba(20, 75, 150, 0.16)",
-              stroke: "#0b4fbd",
-              dashed: false,
-              opacity: 1
-            })}
-
-            ${renderShip({
-              cx: build.receivingCx,
-              stemY: build.receivingOrderStemY,
-              loa: data.receivingLoa,
-              beam: data.receivingBeam,
-              standard: data.receivingStandard,
-              ras: data.receivingRas,
-              label: "Receiving ship",
-              rasSide: "right",
-              fill: "rgba(138, 26, 26, 0.14)",
-              stroke: "#8a1a1a",
-              dashed: false,
-              opacity: 1
-            })}
-
-            ${renderShip({
-              cx: build.receivingCx,
-              stemY: build.receivingFinalStemY,
-              loa: data.receivingLoa,
-              beam: data.receivingBeam,
-              standard: data.receivingStandard,
-              ras: data.receivingRas,
-              label: "Receiving final position",
-              rasSide: "right",
-              fill: "rgba(90, 90, 90, 0.05)",
-              stroke: "#555",
-              dashed: true,
-              opacity: 0.78
-            })}
-
-            ${makeLine(
-              receivingInnerSideX,
-              deliveryRasY,
-              deliveryInnerSideX,
-              deliveryRasY,
-              "#111",
-              0.5,
-              "3 2"
-            )}
-
-            ${makeText(
-              (receivingInnerSideX + deliveryInnerSideX) / 2,
-              deliveryRasY - 5,
-              `Lateral separation ${formatNumber(build.separationMetres, 1)} m`,
-              4,
-              "middle",
-              "#111"
-            )}
-
-            ${makeLine(
-              orderReceivingRasX,
-              receivingOrderRasY,
-              orderReceivingRasX,
-              receivingFinalRasY,
-              "#8a1a1a",
-              0.7,
-              "4 3"
-            )}
-
-            ${renderCentreArrow(
-              orderReceivingRasX,
-              receivingOrderRasY,
-              orderReceivingRasX,
-              receivingFinalRasY,
-              "#8a1a1a"
-            )}
-
-            ${makeText(
-              orderReceivingRasX - 8,
-              (receivingOrderRasY + receivingFinalRasY) / 2,
-              `S = ${formatNumber(build.surgeMetres, 1)} m`,
-              4,
-              "end",
-              "#8a1a1a"
-            )}
-
-            ${makeLine(
-              orderReceivingRasX,
-              receivingOrderRasY,
-              deliveryRasX,
-              deliveryRasY,
-              "#8a1a1a",
-              0.35,
-              "2 2"
-            )}
-          </g>
-
-          ${makeText(
-            12,
-            258,
-            `S = Surge rate × Speed difference`,
-            3.5,
-            "start",
-            "#111",
-            "bold"
-          )}
-
-          ${makeText(
-            12,
-            265,
-            `Speed difference = ${formatNumber(build.speedDifference, 1)} kn`,
-            3.4,
-            "start",
-            "#111"
-          )}
-
-          ${makeText(
-            12,
-            272,
-            `Order down distance S = ${formatNumber(build.surgeYards, 1)} yds = ${formatNumber(build.surgeMetres, 1)} m`,
-            3.4,
-            "start",
-            "#111"
-          )}
-
-          ${makeText(
-            12,
-            279,
-            `Receiving RAS point is S abaft delivery RAS point at order-down position`,
-            3.2,
-            "start",
-            "#111"
+            "end"
           )}
         </svg>
       `;
 
       return {
         svg,
+        surgeDistance,
+        speedAdvantage,
         scaleMPerCm
       };
+    }
+
+    function showWarning(message) {
+      resultBox.innerHTML =
+        `<span class="warning">${message}</span>`;
+
+      printBtn.disabled = true;
+      saveBtn.disabled = true;
     }
 
     function calculate() {
@@ -1018,68 +966,39 @@
       }
 
       const data = getInputs();
-
-      const separationMetres = getSeparationMetres(data);
-      const centreLineSeparation =
-        (data.receivingBeam / 2) +
-        separationMetres +
-        (data.deliveryBeam / 2);
-
-      const speedDifference =
-        data.receivingSpeed - data.deliverySpeed;
-
-      const surgeYards =
-        data.surgeRate * speedDifference;
-
-      const surgeMetres =
-        surgeYards * METRES_PER_YARD;
-
-      const deliveryCx = centreLineSeparation / 2;
-      const receivingCx = -centreLineSeparation / 2;
-
-      const deliveryStemY = 0;
-      const deliveryRasY = deliveryStemY + data.deliveryRas;
-
-      const receivingFinalStemY =
-        deliveryRasY - data.receivingRas;
-
-      const receivingOrderStemY =
-        receivingFinalStemY + surgeMetres;
-
-      const build = {
-        separationMetres,
-        centreLineSeparation,
-        speedDifference,
-        surgeYards,
-        surgeMetres,
-        deliveryCx,
-        receivingCx,
-        deliveryStemY,
-        receivingFinalStemY,
-        receivingOrderStemY
-      };
-
-      const graph = renderRasGraph(data, build);
+      const graph = renderGraph(data);
 
       resultBox.innerHTML = `
         <div class="success">RAS approach graph generated.</div>
 
-        <div class="output-grid">
-          <div class="output-box">
-            <div class="output-label">Speed difference</div>
-            <div class="output-value">${formatNumber(speedDifference, 1)} kn</div>
+        <div class="summary-grid">
+          <div class="summary-box">
+            <div class="summary-label">Speed advantage</div>
+            <div class="summary-value">${formatNumber(graph.speedAdvantage, 2)} kn</div>
           </div>
 
-          <div class="output-box">
-            <div class="output-label">Order down distance S</div>
-            <div class="output-value">${formatNumber(surgeYards, 1)} yds</div>
+          <div class="summary-box">
+            <div class="summary-label">Surge distance S</div>
+            <div class="summary-value">${formatMeters(graph.surgeDistance)}</div>
           </div>
+        </div>
+
+        <div class="note">
+          Order the receiving ship to come down to RAS speed when its RAS point is
+          <strong>${formatMeters(graph.surgeDistance)}</strong> abaft the delivery ship RAS point.
+          The dashed receiving ship shows the final position after surge.
+          Measure Stem to RAS point along the ship centreline to the RAS station tick.
         </div>
 
         <div class="graph-scroll">
           <div id="printArea" class="a4-sheet">
             ${graph.svg}
           </div>
+        </div>
+
+        <div class="note">
+          A4 portrait graph generated. Scale used:
+          1 cm = ${formatNumber(graph.scaleMPerCm, 2)} m.
         </div>
       `;
 
@@ -1093,6 +1012,7 @@
       const svg = document.getElementById("rasSvg");
 
       if (!svg) {
+        showWarning("Generate the graph before printing.");
         return;
       }
 
@@ -1100,174 +1020,233 @@
     }
 
     function isIOSDevice() {
-      return (
-        /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-        (
-          navigator.platform === "MacIntel" &&
-          navigator.maxTouchPoints > 1
-        )
-      );
-    }
+  return (
+    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (
+      navigator.platform === "MacIntel" &&
+      navigator.maxTouchPoints > 1
+    )
+  );
+}
 
-    function createPngBlobFromSvg(svg) {
-      return new Promise((resolve, reject) => {
-        const serializer = new XMLSerializer();
-        const svgText = serializer.serializeToString(svg);
+function getRasGraphSvg() {
+  return (
+    document.getElementById("rasSvg") ||
+    document.getElementById("graphSvg") ||
+    document.querySelector("#printArea svg") ||
+    document.querySelector(".a4-sheet svg") ||
+    document.querySelector("svg")
+  );
+}
 
-        const svgBlob = new Blob(
-          [svgText],
-          {
-            type: "image/svg+xml;charset=utf-8"
-          }
-        );
+function createPngBlobFromSvg(svg) {
+  return new Promise((resolve, reject) => {
+    const serializer = new XMLSerializer();
+    const svgText = serializer.serializeToString(svg);
 
-        const url = URL.createObjectURL(svgBlob);
-        const image = new Image();
-
-        image.onload = function () {
-          const canvas = document.createElement("canvas");
-
-          canvas.width = 2480;
-          canvas.height = 3508;
-
-          const context = canvas.getContext("2d");
-
-          context.fillStyle = "#dff2d8";
-          context.fillRect(0, 0, canvas.width, canvas.height);
-
-          context.drawImage(
-            image,
-            0,
-            0,
-            canvas.width,
-            canvas.height
-          );
-
-          URL.revokeObjectURL(url);
-
-          canvas.toBlob(
-            function (blob) {
-              if (!blob) {
-                reject(new Error("Image creation failed."));
-                return;
-              }
-
-              resolve(blob);
-            },
-            "image/png",
-            1
-          );
-        };
-
-        image.onerror = function () {
-          URL.revokeObjectURL(url);
-          reject(new Error("Image loading failed."));
-        };
-
-        image.src = url;
-      });
-    }
-
-    function downloadBlob(blob, fileName) {
-      const url = URL.createObjectURL(blob);
-
-      const downloadLink = document.createElement("a");
-      downloadLink.href = url;
-      downloadLink.download = fileName;
-      downloadLink.rel = "noopener";
-      downloadLink.style.display = "none";
-
-      document.body.appendChild(downloadLink);
-      downloadLink.click();
-      document.body.removeChild(downloadLink);
-
-      setTimeout(() => {
-        URL.revokeObjectURL(url);
-      }, 2000);
-    }
-
-    function openBlobFallback(blob) {
-      const url = URL.createObjectURL(blob);
-      window.open(url, "_blank", "noopener,noreferrer");
-
-      setTimeout(() => {
-        URL.revokeObjectURL(url);
-      }, 60000);
-    }
-
-    async function saveGraphAsImage() {
-      const svg = document.getElementById("rasSvg");
-
-      if (!svg) {
-        return;
+    const svgBlob = new Blob(
+      [svgText],
+      {
+        type: "image/svg+xml;charset=utf-8"
       }
+    );
 
-      const fileName = "ras-approach-graph.png";
+    const url = URL.createObjectURL(svgBlob);
+    const image = new Image();
 
-      try {
-        const pngBlob = await createPngBlobFromSvg(svg);
-        const pngFile = new File(
-          [pngBlob],
-          fileName,
-          {
-            type: "image/png"
-          }
-        );
+    image.onload = function () {
+      const canvas = document.createElement("canvas");
 
-        if (
-          isIOSDevice() &&
-          navigator.canShare &&
-          navigator.share &&
-          navigator.canShare({ files: [pngFile] })
-        ) {
-          await navigator.share({
-            files: [pngFile],
-            title: "RAS Approach Graph"
-          });
+      canvas.width = 2480;
+      canvas.height = 3508;
 
-          return;
-        }
+      const context = canvas.getContext("2d");
 
-        downloadBlob(pngBlob, fileName);
+      context.fillStyle = "#dff2d8";
+      context.fillRect(0, 0, canvas.width, canvas.height);
 
-        if (
-          !isIOSDevice() &&
-          navigator.canShare &&
-          navigator.share &&
-          navigator.canShare({ files: [pngFile] })
-        ) {
-          return;
-        }
-      } catch (error) {
-        try {
-          const pngBlob = await createPngBlobFromSvg(svg);
-          const pngFile = new File(
-            [pngBlob],
-            "ras-approach-graph.png",
-            {
-              type: "image/png"
-            }
-          );
+      context.drawImage(
+        image,
+        0,
+        0,
+        canvas.width,
+        canvas.height
+      );
 
-          if (
-            navigator.canShare &&
-            navigator.share &&
-            navigator.canShare({ files: [pngFile] })
-          ) {
-            await navigator.share({
-              files: [pngFile],
-              title: "RAS Approach Graph"
-            });
+      URL.revokeObjectURL(url);
 
+      canvas.toBlob(
+        function (blob) {
+          if (!blob) {
+            reject(new Error("Image creation failed."));
             return;
           }
 
-          openBlobFallback(pngBlob);
-        } catch (fallbackError) {
-          resultBox.innerHTML =
-            `<span class="warning">Image saving failed. Use Print A4 Graph and save as PDF from your browser.</span>`;
-        }
+          resolve(blob);
+        },
+        "image/png",
+        1
+      );
+    };
+
+    image.onerror = function () {
+      URL.revokeObjectURL(url);
+      reject(new Error("Image loading failed."));
+    };
+
+    image.src = url;
+  });
+}
+
+function downloadBlob(blob, fileName) {
+  const url = URL.createObjectURL(blob);
+
+  const downloadLink = document.createElement("a");
+  downloadLink.href = url;
+  downloadLink.download = fileName;
+  downloadLink.rel = "noopener";
+  downloadLink.style.display = "none";
+
+  document.body.appendChild(downloadLink);
+  downloadLink.click();
+  document.body.removeChild(downloadLink);
+
+  setTimeout(() => {
+    URL.revokeObjectURL(url);
+  }, 2000);
+}
+
+function openBlobFallback(blob) {
+  const url = URL.createObjectURL(blob);
+  window.open(url, "_blank", "noopener,noreferrer");
+
+  setTimeout(() => {
+    URL.revokeObjectURL(url);
+  }, 60000);
+}
+
+async function saveGraphAsImage() {
+  const svg = getRasGraphSvg();
+
+  if (!svg) {
+    return;
+  }
+
+  const fileName = "ras-approach-graph.png";
+
+  try {
+    const pngBlob = await createPngBlobFromSvg(svg);
+
+    const pngFile = new File(
+      [pngBlob],
+      fileName,
+      {
+        type: "image/png"
       }
+    );
+
+    if (
+      isIOSDevice() &&
+      navigator.canShare &&
+      navigator.share &&
+      navigator.canShare({ files: [pngFile] })
+    ) {
+      await navigator.share({
+        files: [pngFile],
+        title: "RAS Approach Graph"
+      });
+
+      return;
+    }
+
+    downloadBlob(pngBlob, fileName);
+  } catch (error) {
+    try {
+      const pngBlob = await createPngBlobFromSvg(svg);
+
+      const pngFile = new File(
+        [pngBlob],
+        fileName,
+        {
+          type: "image/png"
+        }
+      );
+
+      if (
+        navigator.canShare &&
+        navigator.share &&
+        navigator.canShare({ files: [pngFile] })
+      ) {
+        await navigator.share({
+          files: [pngFile],
+          title: "RAS Approach Graph"
+        });
+
+        return;
+      }
+
+      openBlobFallback(pngBlob);
+    } catch (fallbackError) {
+      const resultBox =
+        document.getElementById("result") ||
+        document.getElementById("output") ||
+        document.querySelector(".result");
+
+      if (resultBox) {
+        resultBox.classList.remove("hidden");
+        resultBox.innerHTML =
+          `<span class="warning">Image saving failed. Use Print A4 Graph and save as PDF from your browser.</span>`;
+      }
+    }
+  }
+}
+
+      const serializer = new XMLSerializer();
+      const svgText = serializer.serializeToString(svg);
+
+      const svgBlob = new Blob(
+        [svgText],
+        {
+          type: "image/svg+xml;charset=utf-8"
+        }
+      );
+
+      const url = URL.createObjectURL(svgBlob);
+      const image = new Image();
+
+      image.onload = function () {
+        const canvas = document.createElement("canvas");
+
+        canvas.width = 2480;
+        canvas.height = 3508;
+
+        const context = canvas.getContext("2d");
+
+        context.fillStyle = "#dff2d8";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+
+        context.drawImage(
+          image,
+          0,
+          0,
+          canvas.width,
+          canvas.height
+        );
+
+        URL.revokeObjectURL(url);
+
+        const pngUrl = canvas.toDataURL("image/png");
+
+        const downloadLink = document.createElement("a");
+        downloadLink.href = pngUrl;
+        downloadLink.download = "ras-approach-graph.png";
+
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+      };
+
+      image.src = url;
     }
 
     updateButton();
