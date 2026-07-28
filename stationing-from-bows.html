@@ -1012,10 +1012,8 @@
           `EF2 = Acceleration = ${trimNumber(correctionYards, 1)}yds`;
       }
 
-      const guideRunStart = F;
-
       const G = add(
-        guideRunStart,
+        F,
         multiply(guideUnits.along, guideRunNm)
       );
 
@@ -1041,6 +1039,9 @@
         bearingAFromG: bearingFromVector(GA.east, GA.north),
         bearingBFromG: bearingFromVector(GB.east, GB.north),
         legendLines: [
+          `Course to Steer = ${formatBearingHalfDegree(solution.courseToSteer)}`,
+          `Turn required = ${formatAngleHalf(turnInfo.angle)} ${turnInfo.direction}`,
+          `Wheel used = ${trimNumber(construction.wheelUsed, 1)}°`,
           `AB = Final Stn = ${formatBearingHalfDegree(data.finalBearing)} - ${trimNumber(data.finalRangeCables, 1)}C from guide`,
           `BC = Safety Margin = ${formatInputDistance(construction.safetyMargin, construction.safetyUnit)}`,
           `CD = Transfer = ${formatInputDistance(construction.transfer, construction.advTransferUnit)}`,
@@ -1184,6 +1185,22 @@
       `;
     }
 
+    function makeBoldResultText(x, y, label, value) {
+      return `
+        <text
+          x="${x}"
+          y="${y}"
+          font-size="3.5"
+          text-anchor="start"
+          fill="#111"
+          font-family="Arial, sans-serif"
+        >
+          <tspan font-weight="bold">${label}</tspan>
+          <tspan>${value}</tspan>
+        </text>
+      `;
+    }
+
     function renderGrid() {
       let grid = `
         <rect
@@ -1290,12 +1307,12 @@
     }
 
     function renderLegend(build) {
-      let legend = makeText(12, 24, "Legend", 3.4, "start", "#111");
+      let legend = "";
 
       build.legendLines.forEach((line, index) => {
         legend += makeText(
           12,
-          30 + (index * 5),
+          24 + (index * 5),
           line,
           3.0,
           "start",
@@ -1308,22 +1325,18 @@
 
     function renderBottomResults(build) {
       return `
-        ${makeText(
+        ${makeBoldResultText(
           12,
           273,
-          `Angle of Aim Point = ${formatAngleHalf(build.angleBGF)}`,
-          3.5,
-          "start",
-          "#111"
+          "Angle of Aim Point = ",
+          formatAngleHalf(build.angleBGF)
         )}
 
-        ${makeText(
+        ${makeBoldResultText(
           12,
           280,
-          `True Bearing of A from G = ${formatBearingHalfDegree(build.bearingAFromG)}`,
-          3.5,
-          "start",
-          "#111"
+          "True Bearing of A from G = ",
+          formatBearingHalfDegree(build.bearingAFromG)
         )}
       `;
     }
