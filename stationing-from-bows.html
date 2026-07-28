@@ -1579,59 +1579,176 @@
       window.print();
     }
 
-    function saveGraphAsImage() {
+    function isIOSDevice() {
+      return (
+        /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+        (
+          navigator.platform === "MacIntel" &&
+          navigator.maxTouchPoints > 1
+        )
+      );
+    }
+
+    function createPngBlobFromSvg(svg) {
+      return new Promise((resolve, reject) => {
+        const serializer = new XMLSerializer();
+        const svgText = serializer.serializeToString(svg);
+
+        const svgBlob = new Blob(
+          [svgText],
+          {
+            type: "image/svg+xml;charset=utf-8"
+          }
+        );
+
+        const url = URL.createObjectURL(svgBlob);
+        const image = new Image();
+
+        image.onload = function () {
+          const canvas = document.createElement("canvas");
+
+          canvas.width = 2480;
+          canvas.height = 3508;
+
+          const context = canvas.getContext("2d");
+
+          context.fillStyle = "#dff2d8";
+          context.fillRect(0, 0, canvas.width, canvas.height);
+
+          context.drawImage(
+            image,
+            0,
+            0,
+            canvas.width,
+            canvas.height
+          );
+
+          URL.revokeObjectURL(url);
+
+          canvas.toBlob(
+            function (blob) {
+              if (!blob) {
+                reject(new Error("Image creation failed."));
+                return;
+              }
+
+              resolve(blob);
+            },
+            "image/png",
+            1
+          );
+        };
+
+        image.onerror = function () {
+          URL.revokeObjectURL(url);
+          reject(new Error("Image loading failed."));
+        };
+
+        image.src = url;
+      });
+    }
+
+    function downloadBlob(blob, fileName) {
+      const url = URL.createObjectURL(blob);
+
+      const downloadLink = document.createElement("a");
+      downloadLink.href = url;
+      downloadLink.download = fileName;
+      downloadLink.rel = "noopener";
+      downloadLink.style.display = "none";
+
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+      }, 2000);
+    }
+
+    function openBlobFallback(blob) {
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank", "noopener,noreferrer");
+
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+      }, 60000);
+    }
+
+    async function saveGraphAsImage() {
       const svg = document.getElementById("stationSvg");
 
       if (!svg) {
         return;
       }
 
-      const serializer = new XMLSerializer();
-      const svgText = serializer.serializeToString(svg);
+      const fileName = "stationing-from-bows-graph.png";
 
-      const svgBlob = new Blob(
-        [svgText],
-        {
-          type: "image/svg+xml;charset=utf-8"
-        }
-      );
-
-      const url = URL.createObjectURL(svgBlob);
-      const image = new Image();
-
-      image.onload = function () {
-        const canvas = document.createElement("canvas");
-
-        canvas.width = 2480;
-        canvas.height = 3508;
-
-        const context = canvas.getContext("2d");
-
-        context.fillStyle = "#dff2d8";
-        context.fillRect(0, 0, canvas.width, canvas.height);
-
-        context.drawImage(
-          image,
-          0,
-          0,
-          canvas.width,
-          canvas.height
+      try {
+        const pngBlob = await createPngBlobFromSvg(svg);
+        const pngFile = new File(
+          [pngBlob],
+          fileName,
+          {
+            type: "image/png"
+          }
         );
 
-        URL.revokeObjectURL(url);
+        if (
+          isIOSDevice() &&
+          navigator.canShare &&
+          navigator.share &&
+          navigator.canShare({ files: [pngFile] })
+        ) {
+          await navigator.share({
+            files: [pngFile],
+            title: "Stationing from Bows Graph"
+          });
 
-        const pngUrl = canvas.toDataURL("image/png");
+          return;
+        }
 
-        const downloadLink = document.createElement("a");
-        downloadLink.href = pngUrl;
-        downloadLink.download = "stationing-from-bows-graph.png";
+        downloadBlob(pngBlob, fileName);
 
-        document.body.appendChild(downloadLink);
-        downloadLink.click();
-        document.body.removeChild(downloadLink);
-      };
+        if (
+          !isIOSDevice() &&
+          navigator.canShare &&
+          navigator.share &&
+          navigator.canShare({ files: [pngFile] })
+        ) {
+          return;
+        }
+      } catch (error) {
+        try {
+          const pngBlob = await createPngBlobFromSvg(svg);
+          const pngFile = new File(
+            [pngBlob],
+            "stationing-from-bows-graph.png",
+            {
+              type: "image/png"
+            }
+          );
 
-      image.src = url;
+          if (
+            navigator.canShare &&
+            navigator.share &&
+            navigator.canShare({ files: [pngFile] })
+          ) {
+            await navigator.share({
+              files: [pngFile],
+              title: "Stationing from Bows Graph"
+            });
+
+            return;
+          }
+
+          openBlobFallback(pngBlob);
+        } catch (fallbackError) {
+          resultBox.classList.remove("hidden");
+          resultBox.innerHTML =
+            `<span class="warning">Image saving failed. Use Print A4 Graph and save as PDF from your browser.</span>`;
+        }
+      }
     }
 
     updateCTSButton();
