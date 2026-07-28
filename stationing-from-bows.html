@@ -636,54 +636,6 @@
       `;
     }
 
-    function makeMidArrow(x1, y1, x2, y2, fill) {
-      const dx = x2 - x1;
-      const dy = y2 - y1;
-      const length = Math.sqrt((dx * dx) + (dy * dy));
-
-      if (length < 0.001) {
-        return "";
-      }
-
-      const ux = dx / length;
-      const uy = dy / length;
-
-      const midX = (x1 + x2) / 2;
-      const midY = (y1 + y2) / 2;
-
-      const arrowLength = 1.2;
-      const arrowWidth = 1.0;
-
-      const tipX = midX + (ux * arrowLength * 0.5);
-      const tipY = midY + (uy * arrowLength * 0.5);
-
-      const baseX = midX - (ux * arrowLength * 0.5);
-      const baseY = midY - (uy * arrowLength * 0.5);
-
-      const nx = -uy;
-      const ny = ux;
-
-      const leftX = baseX + (nx * arrowWidth * 0.5);
-      const leftY = baseY + (ny * arrowWidth * 0.5);
-
-      const rightX = baseX - (nx * arrowWidth * 0.5);
-      const rightY = baseY - (ny * arrowWidth * 0.5);
-
-      return `
-        <polygon
-          points="${tipX},${tipY} ${leftX},${leftY} ${rightX},${rightY}"
-          fill="${fill}"
-        />
-      `;
-    }
-
-    function makeLineWithMidArrow(x1, y1, x2, y2, stroke, width, dash = "") {
-      return `
-        ${makeLine(x1, y1, x2, y2, stroke, width, dash)}
-        ${makeMidArrow(x1, y1, x2, y2, stroke)}
-      `;
-    }
-
     function renderGrid() {
       let grid = `
         <rect
@@ -724,6 +676,49 @@
       return grid;
     }
 
+    function renderCentreArrow(x1, y1, x2, y2, colour) {
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      const length = Math.sqrt((dx * dx) + (dy * dy));
+
+      if (length < 0.001) {
+        return "";
+      }
+
+      const ux = dx / length;
+      const uy = dy / length;
+
+      const midX = (x1 + x2) / 2;
+      const midY = (y1 + y2) / 2;
+
+      const arrowLength = 1.2;
+      const arrowWidth = 0.9;
+
+      const tipX = midX + (ux * arrowLength / 2);
+      const tipY = midY + (uy * arrowLength / 2);
+
+      const baseX = midX - (ux * arrowLength / 2);
+      const baseY = midY - (uy * arrowLength / 2);
+
+      const perpX = -uy;
+      const perpY = ux;
+
+      const leftX = baseX + (perpX * arrowWidth / 2);
+      const leftY = baseY + (perpY * arrowWidth / 2);
+
+      const rightX = baseX - (perpX * arrowWidth / 2);
+      const rightY = baseY - (perpY * arrowWidth / 2);
+
+      return `
+        <polygon
+          points="${tipX},${tipY} ${leftX},${leftY} ${rightX},${rightY}"
+          fill="${colour}"
+          stroke="${colour}"
+          stroke-width="0.1"
+        />
+      `;
+    }
+
     function renderPoint(x, y, label, fill, labelXOffset, labelYOffset) {
       return `
         <circle
@@ -731,6 +726,8 @@
           cy="${y}"
           r="0.5"
           fill="${fill}"
+          stroke="#111"
+          stroke-width="0.15"
         />
 
         ${makeText(
@@ -850,9 +847,6 @@
       const northArrowY1 = 34;
       const northArrowY2 = 18;
 
-      const movementLineWidth = 1.0;
-      const positionLineWidth = 1.0;
-
       const svg = `
         <svg
           id="stationSvg"
@@ -888,13 +882,21 @@
             "end"
           )}
 
-          ${makeLineWithMidArrow(
+          ${makeLine(
             northArrowX,
             northArrowY1,
             northArrowX,
             northArrowY2,
             "#111",
-            1.0
+            0.5
+          )}
+
+          ${renderCentreArrow(
+            northArrowX,
+            northArrowY1,
+            northArrowX,
+            northArrowY2,
+            "#111"
           )}
 
           ${makeText(
@@ -905,37 +907,53 @@
             "middle"
           )}
 
-          ${makeLineWithMidArrow(
+          ${makeLine(
             guideStartX,
             guideStartY,
             guideFinalX,
             guideFinalY,
             "#111",
-            movementLineWidth
+            0.5
+          )}
+
+          ${renderCentreArrow(
+            guideStartX,
+            guideStartY,
+            guideFinalX,
+            guideFinalY,
+            "#111"
           )}
 
           ${makeText(
             (guideStartX + guideFinalX) / 2,
             (guideStartY + guideFinalY) / 2 - 3,
             "Guide movement",
-            3.0,
+            3.1,
             "middle"
           )}
 
-          ${makeLineWithMidArrow(
+          ${makeLine(
             ownCurrentX,
             ownCurrentY,
             ownFinalX,
             ownFinalY,
             "#0b4fbd",
-            movementLineWidth
+            0.5
+          )}
+
+          ${renderCentreArrow(
+            ownCurrentX,
+            ownCurrentY,
+            ownFinalX,
+            ownFinalY,
+            "#0b4fbd"
           )}
 
           ${makeText(
             (ownCurrentX + ownFinalX) / 2,
             (ownCurrentY + ownFinalY) / 2 + 5,
             `Own CTS ${formatBearingHalfDegree(solution.courseToSteer)}`,
-            3.0,
+            3.1,
             "middle",
             "#0b4fbd"
           )}
@@ -946,7 +964,7 @@
             ownCurrentX,
             ownCurrentY,
             "#444",
-            positionLineWidth,
+            0.5,
             "2 2"
           )}
 
@@ -954,7 +972,7 @@
             (guideStartX + ownCurrentX) / 2,
             (guideStartY + ownCurrentY) / 2 - 2,
             "Current position from guide",
-            2.8,
+            2.9,
             "middle",
             "#444"
           )}
@@ -965,7 +983,7 @@
             ownFinalX,
             ownFinalY,
             "#8a1a1a",
-            positionLineWidth,
+            0.5,
             "2 2"
           )}
 
@@ -973,7 +991,7 @@
             (guideFinalX + ownFinalX) / 2,
             (guideFinalY + ownFinalY) / 2 - 2,
             "Final station from guide",
-            2.8,
+            2.9,
             "middle",
             "#8a1a1a"
           )}
@@ -983,8 +1001,8 @@
             guideStartY,
             "Guide start",
             "#111",
-            2,
-            -2
+            3,
+            -3
           )}
 
           ${renderPoint(
@@ -992,8 +1010,8 @@
             guideFinalY,
             "Guide final",
             "#111",
-            2,
-            -2
+            3,
+            -3
           )}
 
           ${renderPoint(
@@ -1001,8 +1019,8 @@
             ownCurrentY,
             "Own current",
             "#0b4fbd",
-            2,
-            -2
+            3,
+            -3
           )}
 
           ${renderPoint(
@@ -1010,8 +1028,8 @@
             ownFinalY,
             "Own final station",
             "#8a1a1a",
-            2,
-            -2
+            3,
+            -3
           )}
 
           <rect
