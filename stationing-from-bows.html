@@ -905,26 +905,15 @@
         data.currentRangeCables * 0.1
       );
 
-      const AB = subtract(B, A);
-      const ABUnit = unitVector(AB);
-
-      const ABStarboard = {
-        east: ABUnit.north,
-        north: -ABUnit.east
-      };
-
-      const ABPort = {
-        east: -ABUnit.north,
-        north: ABUnit.east
-      };
-
-      const currentSide =
-        dot(ownCurrent, ABStarboard) >= 0
-          ? ABStarboard
-          : ABPort;
-
       const ownUnits = getCourseUnits(solution.courseToSteer);
       const guideUnits = getCourseUnits(data.guideCourse);
+
+      const currentFromB = subtract(ownCurrent, B);
+
+      const currentSide =
+        dot(currentFromB, guideUnits.starboard) >= 0
+          ? guideUnits.starboard
+          : guideUnits.port;
 
       let transferSide = ownUnits.starboard;
 
