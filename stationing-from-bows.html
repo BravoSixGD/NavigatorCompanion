@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>Stationing from Bows</title>
+
+  <link rel="stylesheet" href="assets/theme.css">
+
+  <style>
+    .input-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .section-subtitle {
+      font-size: clamp(16px, 3vw, 19px);
+      font-weight: bold;
+      color: var(--text-main);
+      margin: 0 0 12px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border-soft);
+    }
+
+    .input-section {
+      margin-bottom: 18px;
+    }
+
+    .output-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .output-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border-main);
+      border-radius: 12px;
+      padding: 14px;
+      line-height: 1.5;
+    }
+
+    .output-label {
+      color: var(--text-muted);
+      font-size: 14px;
+      margin-bottom: 5px;
+    }
+
+    .output-value {
+      font-size: clamp(18px, 4vw, 25px);
+      font-weight: bold;
+      color: var(--text-main);
+    }
+
+    .small-note {
+      margin-top: 12px;
+      color: var(--text-muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    @media (min-width: 760px) {
+      .input-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .output-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <a
+    href="index.html"
+    class="home-btn"
+    aria-label="Back to home"
+  >×</a>
+
+  <div class="app-container">
+    <h1 class="page-title">Stationing from Bows</h1>
+
+    <div class="card">
+      <div class="card-title">CTS Calculator</div>
+
+      <div class="input-section">
+        <div class="section-subtitle">Guide Ship Data</div>
+
+        <div class="input-grid">
+          <div>
+            <label>Guide ship's course</label>
+            <input
+              id="guideCourse"
+              type="number"
+              inputmode="decimal"
+              step="0.1"
+              placeholder="090"
+            >
+          </div>
+
+          <div>
+            <label>Guide ship's speed in knots</label>
+            <input
+              id="guideSpeed"
+              type="number"
+              inputmode="decimal"
+              step="0.1"
+              placeholder="12"
+            >
+          </div>
+        </div>
+      </div>
+
+      <div class="input-section">
+        <div class="section-subtitle">Own Final Station from Guide</div>
+
+        <div class="input-grid">
+          <div>
+            <label>Final station bearing from guide</label>
+            <input
+              id="finalBearing"
+              type="number"
+              inputmode="decimal"
+              step="0.1"
+              placeholder="045"
+            >
+          </div>
+
+          <div>
+            <label>Final station range from guide in cables</label>
+            <input
+              id="finalRange"
+              type="number"
+              inputmode="decimal"
+              step="0.1"
+              placeholder="5"
+            >
+          </div>
+        </div>
+      </div>
+
+      <div class="input-section">
+        <div class="section-subtitle">Own Current Position from Guide</div>
+
+        <div class="input-grid">
+          <div>
+            <label>Current position bearing from guide</label>
+            <input
+              id="currentBearing"
+              type="number"
+              inputmode="decimal"
+              step="0.1"
+              placeholder="120"
+            >
+          </div>
+
+          <div>
+            <label>Current position range from guide in cables</label>
+            <input
+              id="currentRange"
+              type="number"
+              inputmode="decimal"
+              step="0.1"
+              placeholder="12"
+            >
+          </div>
+        </div>
+      </div>
+
+      <div class="input-section">
+        <div class="section-subtitle">Own Ship Data</div>
+
+        <div class="input-grid">
+          <div>
+            <label>Own speed in knots</label>
+            <input
+              id="ownSpeed"
+              type="number"
+              inputmode="decimal"
+              step="0.1"
+              placeholder="15"
+            >
+          </div>
+        </div>
+      </div>
+
+      <button
+        id="goBtn"
+        class="go-btn"
+        type="button"
+      >
+        GO
+      </button>
+
+      <div id="result" class="result">
+        Enter values to calculate course to steer.
+      </div>
+    </div>
+  </div>
+
+  <script>
+    "use strict";
+
+    const goBtn = document.getElementById("goBtn");
+    const resultBox = document.getElementById("result");
+
+    const inputIds = [
+      "guideCourse",
+      "guideSpeed",
+      "finalBearing",
+      "finalRange",
+      "currentBearing",
+      "currentRange",
+      "ownSpeed"
+    ];
+
+    document
+      .querySelectorAll("input")
+      .forEach((input) => {
+        input.addEventListener("input", updateButton);
+      });
+
+    goBtn.addEventListener("click", calculate);
+
+    function readNumber(id) {
+      const text = document.getElementById(id).value.trim();
+
+      if (text === "") {
+        return Number.NaN;
+      }
+
+      return Number(text);
+    }
+
+    function getInputs() {
+      return {
+        guideCourse: readNumber("guideCourse"),
+        guideSpeed: readNumber("guideSpeed"),
+
+        finalBearing: readNumber("finalBearing"),
+        finalRangeCables: readNumber("finalRange"),
+
+        currentBearing: readNumber("currentBearing"),
+        currentRangeCables: readNumber("currentRange"),
+
+        ownSpeed: readNumber("ownSpeed")
+      };
+    }
+
+    function degToRad(degrees) {
+      return degrees * Math.PI / 180;
+    }
+
+    function radToDeg(radians) {
+      return radians * 180 / Math.PI;
+    }
+
+    function normalizeBearing(value) {
+      return ((value % 360) + 360) % 360;
+    }
+
+    function formatBearingHalfDegree(value) {
+      let rounded = Math.round(normalizeBearing(value) * 2) / 2;
+
+      if (rounded >= 360) {
+        rounded = 0;
+      }
+
+      const whole = Math.floor(rounded);
+      const decimal = Number.isInteger(rounded) ? ".0" : ".5";
+
+      return `${String(whole).padStart(3, "0")}${decimal}°`;
+    }
+
+    function formatBearingOneDecimal(value) {
+      return `${normalizeBearing(value).toFixed(1).padStart(5, "0")}°`;
+    }
+
+    function formatNumber(value, decimals = 2) {
+      return Number(value).toFixed(decimals);
+    }
+
+    function formatHours(hours) {
+      const totalMinutes = Math.round(hours * 60);
+      const h = Math.floor(totalMinutes / 60);
+      const m = totalMinutes % 60;
+
+      return `${formatNumber(hours, 2)} hrs (${h} h ${String(m).padStart(2, "0")} min)`;
+    }
+
+    function roundUpToHalf(value) {
+      return Math.ceil(value * 2) / 2;
+    }
+
+    function vectorFromBearingAndDistance(bearing, distanceNm) {
+      const radians = degToRad(bearing);
+
+      return {
+        east: distanceNm * Math.sin(radians),
+        north: distanceNm * Math.cos(radians)
+      };
+    }
+
+    function velocityFromCourseAndSpeed(course, speed) {
+      const radians = degToRad(course);
+
+      return {
+        east: speed * Math.sin(radians),
+        north: speed * Math.cos(radians)
+      };
+    }
+
+    function bearingFromVector(east, north) {
+      return normalizeBearing(radToDeg(Math.atan2(east, north)));
+    }
+
+    function magnitude(east, north) {
+      return Math.sqrt((east * east) + (north * north));
+    }
+
+    function dot(a, b) {
+      return (a.east * b.east) + (a.north * b.north);
+    }
+
+    function getValidationMessage() {
+      const data = getInputs();
+
+      for (const id of inputIds) {
+        const value = readNumber(id);
+
+        if (!Number.isFinite(value)) {
+          return "Complete all input fields.";
+        }
+      }
+
+      if (
+        data.guideCourse < 0 ||
+        data.guideCourse >= 360
+      ) {
+        return "Guide ship's course must be from 000 to 359.";
+      }
+
+      if (
+        data.finalBearing < 0 ||
+        data.finalBearing >= 360
+      ) {
+        return "Final station bearing must be from 000 to 359.";
+      }
+
+      if (
+        data.currentBearing < 0 ||
+        data.currentBearing >= 360
+      ) {
+        return "Current position bearing must be from 000 to 359.";
+      }
+
+      if (data.guideSpeed <= 0) {
+        return "Recheck guide ship's speed.";
+      }
+
+      if (data.ownSpeed <= 0) {
+        return "Recheck own speed.";
+      }
+
+      if (data.finalRangeCables < 0) {
+        return "Recheck final station range.";
+      }
+
+      if (data.currentRangeCables < 0) {
+        return "Recheck current position range.";
+      }
+
+      return "";
+    }
+
+    function isValidInput() {
+      return getValidationMessage() === "";
+    }
+
+    function updateButton() {
+      goBtn.classList.toggle("valid", isValidInput());
+    }
+
+    function calculateStationing(data) {
+      const guideVelocity = velocityFromCourseAndSpeed(
+        data.guideCourse,
+        data.guideSpeed
+      );
+
+      const currentRangeNm = data.currentRangeCables * 0.1;
+      const finalRangeNm = data.finalRangeCables * 0.1;
+
+      const currentPosition = vectorFromBearingAndDistance(
+        data.currentBearing,
+        currentRangeNm
+      );
+
+      const finalPosition = vectorFromBearingAndDistance(
+        data.finalBearing,
+        finalRangeNm
+      );
+
+      const relativeDisplacement = {
+        east: finalPosition.east - currentPosition.east,
+        north: finalPosition.north - currentPosition.north
+      };
+
+      const relativeDistanceNm = magnitude(
+        relativeDisplacement.east,
+        relativeDisplacement.north
+      );
+
+      if (relativeDistanceNm < 0.000001) {
+        return {
+          alreadyThere: true,
+          guideCourse: data.guideCourse,
+          guideSpeed: data.guideSpeed
+        };
+      }
+
+      const relativeTrackUnit = {
+        east: relativeDisplacement.east / relativeDistanceNm,
+        north: relativeDisplacement.north / relativeDistanceNm
+      };
+
+      const guideAlongRelativeTrack = dot(
+        guideVelocity,
+        relativeTrackUnit
+      );
+
+      /*
+        Required relative velocity is along the line from current station
+        to final station.
+
+        Own velocity = Guide velocity + Relative velocity
+
+        Let relative speed be s.
+
+        |Guide velocity + s × relative track unit| = Own speed
+      */
+      const discriminant =
+        (guideAlongRelativeTrack * guideAlongRelativeTrack) +
+        (data.ownSpeed * data.ownSpeed) -
+        (data.guideSpeed * data.guideSpeed);
+
+      let minimumSpeed;
+      let minimumSpeedText;
+
+      if (guideAlongRelativeTrack < 0) {
+        minimumSpeed = Math.sqrt(
+          Math.max(
+            0,
+            (data.guideSpeed * data.guideSpeed) -
+            (guideAlongRelativeTrack * guideAlongRelativeTrack)
+          )
+        );
+
+        minimumSpeedText =
+          `${formatNumber(roundUpToHalf(minimumSpeed), 1)} kn`;
+      } else {
+        minimumSpeed = data.guideSpeed;
+
+        minimumSpeedText =
+          `more than ${formatNumber(roundUpToHalf(minimumSpeed), 1)} kn`;
+      }
+
+      if (discriminant < -0.000001) {
+        return {
+          possible: false,
+          minimumSpeed,
+          minimumSpeedText
+        };
+      }
+
+      const sqrtDiscriminant = Math.sqrt(
+        Math.max(0, discriminant)
+      );
+
+      const root1 =
+        -guideAlongRelativeTrack + sqrtDiscriminant;
+
+      const root2 =
+        -guideAlongRelativeTrack - sqrtDiscriminant;
+
+      const positiveRoots = [root1, root2]
+        .filter((value) => value > 0.000001);
+
+      if (positiveRoots.length === 0) {
+        return {
+          possible: false,
+          minimumSpeed,
+          minimumSpeedText
+        };
+      }
+
+      /*
+        If two valid solutions exist, use the larger relative speed.
+        This gives the shortest time to reach the final station.
+      */
+      const relativeSpeed = Math.max(...positiveRoots);
+
+      const ownVelocity = {
+        east:
+          guideVelocity.east +
+          (relativeSpeed * relativeTrackUnit.east),
+
+        north:
+          guideVelocity.north +
+          (relativeSpeed * relativeTrackUnit.north)
+      };
+
+      const courseToSteer = bearingFromVector(
+        ownVelocity.east,
+        ownVelocity.north
+      );
+
+      const timeHours = relativeDistanceNm / relativeSpeed;
+      const ownDistanceNm = data.ownSpeed * timeHours;
+
+      const relativeTrackBearing = bearingFromVector(
+        relativeDisplacement.east,
+        relativeDisplacement.north
+      );
+
+      return {
+        possible: true,
+        courseToSteer,
+        timeHours,
+        ownDistanceNm,
+        relativeDistanceNm,
+        relativeSpeed,
+        relativeTrackBearing,
+        minimumSpeed,
+        minimumSpeedText
+      };
+    }
+
+    function showWarning(message) {
+      resultBox.innerHTML =
+        `<span class="warning">${message}</span>`;
+    }
+
+    function calculate() {
+      const validationMessage = getValidationMessage();
+
+      if (validationMessage !== "") {
+        showWarning(validationMessage);
+        updateButton();
+        return;
+      }
+
+      const data = getInputs();
+      const solution = calculateStationing(data);
+
+      if (solution.alreadyThere) {
+        resultBox.innerHTML = `
+          <div class="success">Own ship is already at the final station.</div>
+
+          <div class="output-grid">
+            <div class="output-box">
+              <div class="output-label">Course to maintain station</div>
+              <div class="output-value">${formatBearingHalfDegree(solution.guideCourse)}</div>
+            </div>
+
+            <div class="output-box">
+              <div class="output-label">Speed to maintain station</div>
+              <div class="output-value">${formatNumber(solution.guideSpeed, 2)} kn</div>
+            </div>
+          </div>
+
+          <div class="small-note">
+            To remain at the same relative station, own ship must match guide ship's course and speed.
+          </div>
+        `;
+
+        updateButton();
+        return;
+      }
+
+      if (!solution.possible) {
+        resultBox.innerHTML = `
+          <span class="warning">
+            Final station is not possible at the entered own speed.
+          </span>
+
+          <div class="output-grid">
+            <div class="output-box">
+              <div class="output-label">Entered own speed</div>
+              <div class="output-value">${formatNumber(data.ownSpeed, 2)} kn</div>
+            </div>
+
+            <div class="output-box">
+              <div class="output-label">Least speed required</div>
+              <div class="output-value">${solution.minimumSpeedText}</div>
+            </div>
+          </div>
+
+          <div class="small-note">
+            Increase own speed and recalculate.
+          </div>
+        `;
+
+        updateButton();
+        return;
+      }
+
+      resultBox.innerHTML = `
+        <div class="success">Course to steer calculated.</div>
+
+        <div class="output-grid">
+          <div class="output-box">
+            <div class="output-label">Course to steer</div>
+            <div class="output-value">${formatBearingHalfDegree(solution.courseToSteer)}</div>
+          </div>
+
+          <div class="output-box">
+            <div class="output-label">Time to final station</div>
+            <div class="output-value">${formatHours(solution.timeHours)}</div>
+          </div>
+
+          <div class="output-box">
+            <div class="output-label">Own distance to run</div>
+            <div class="output-value">${formatNumber(solution.ownDistanceNm, 2)} NM</div>
+          </div>
+
+          <div class="output-box">
+            <div class="output-label">Relative distance to final station</div>
+            <div class="output-value">${formatNumber(solution.relativeDistanceNm, 2)} NM</div>
+          </div>
+        </div>
+
+        <div class="small-note">
+          Relative track from current position to final station:
+          ${formatBearingOneDecimal(solution.relativeTrackBearing)}.
+          <br>
+          Relative speed made good:
+          ${formatNumber(solution.relativeSpeed, 2)} kn.
+          <br>
+          Bearing inputs are treated as true bearings. Range conversion used:
+          1 cable = 0.1 NM.
+        </div>
+      `;
+
+      updateButton();
+    }
+
+    updateButton();
+  </script>
+</body>
+</html>
