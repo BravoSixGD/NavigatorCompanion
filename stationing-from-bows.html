@@ -39,6 +39,13 @@
       align-items: end;
     }
 
+    .advance-transfer-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 0.65fr;
+      gap: 10px;
+      align-items: end;
+    }
+
     .time-row {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -274,10 +281,15 @@
               <input id="wheelUsed" class="construction-input" type="number" inputmode="decimal" step="0.1" placeholder="15">
             </div>
 
-            <div class="unit-row">
+            <div class="advance-transfer-row">
               <div>
                 <label>Advance</label>
                 <input id="advance" class="construction-input" type="number" inputmode="decimal" step="0.1" placeholder="4">
+              </div>
+
+              <div>
+                <label>Transfer</label>
+                <input id="transfer" class="construction-input" type="number" inputmode="decimal" step="0.1" placeholder="2">
               </div>
 
               <div>
@@ -287,11 +299,6 @@
                   <option value="yards">yards</option>
                 </select>
               </div>
-            </div>
-
-            <div>
-              <label>Transfer</label>
-              <input id="transfer" class="construction-input" type="number" inputmode="decimal" step="0.1" placeholder="2">
             </div>
 
             <div class="unit-row">
@@ -471,6 +478,12 @@
       return Number(value).toFixed(decimals);
     }
 
+    function trimNumber(value, decimals = 1) {
+      return Number(value)
+        .toFixed(decimals)
+        .replace(/\.0$/, "");
+    }
+
     function formatBearingHalfDegree(value) {
       let rounded = Math.round(normalizeBearing(value) * 2) / 2;
 
@@ -491,6 +504,16 @@
 
     function roundUpToHalf(value) {
       return Math.ceil(value * 2) / 2;
+    }
+
+    function unitShort(unit) {
+      if (unit === "metres") return "m";
+      if (unit === "yards") return "yds";
+      return "C";
+    }
+
+    function formatInputDistance(value, unit) {
+      return `${trimNumber(value, 1)}${unitShort(unit)}`;
     }
 
     function vectorFromBearingAndDistance(bearing, distanceNm) {
@@ -951,31 +974,42 @@
 
       let applicableLabel = "E";
       let F = E;
+      let correctionLineText = "E = No speed correction";
 
       if (data.ownSpeed > data.guideSpeed) {
         applicableLabel = "F1";
 
+        const correctionYards =
+          construction.surgeRate * (data.ownSpeed - data.guideSpeed);
+
         const correctionNm =
-          (construction.surgeRate * (data.ownSpeed - data.guideSpeed)) /
-          YARDS_PER_NM;
+          correctionYards / YARDS_PER_NM;
 
         F = add(
           E,
           multiply(ownUnits.along, correctionNm)
         );
+
+        correctionLineText =
+          `EF1 = Surge = ${trimNumber(correctionYards, 1)}yds`;
       }
 
       if (data.ownSpeed < data.guideSpeed) {
         applicableLabel = "F2";
 
+        const correctionYards =
+          construction.accelerationRate * (data.guideSpeed - data.ownSpeed);
+
         const correctionNm =
-          (construction.accelerationRate * (data.guideSpeed - data.ownSpeed)) /
-          YARDS_PER_NM;
+          correctionYards / YARDS_PER_NM;
 
         F = subtract(
           E,
           multiply(ownUnits.along, correctionNm)
         );
+
+        correctionLineText =
+          `EF2 = Acceleration = ${trimNumber(correctionYards, 1)}yds`;
       }
 
       const guideRunStart = F;
@@ -989,6 +1023,11 @@
       const GF = subtract(F, G);
       const GA = subtract(A, G);
 
+      const guideRunLine =
+        applicableLabel === "E"
+          ? `EG = Guide Run = ${trimNumber(guideRunNm * 10, 2)}C`
+          : `${applicableLabel}G = Guide Run = ${trimNumber(guideRunNm * 10, 2)}C`;
+
       return {
         A,
         B,
@@ -1000,7 +1039,15 @@
         applicableLabel,
         angleBGF: angleBetweenVectors(GB, GF),
         bearingAFromG: bearingFromVector(GA.east, GA.north),
-        bearingBFromG: bearingFromVector(GB.east, GB.north)
+        bearingBFromG: bearingFromVector(GB.east, GB.north),
+        legendLines: [
+          `AB = Final Stn = ${formatBearingHalfDegree(data.finalBearing)} - ${trimNumber(data.finalRangeCables, 1)}C from guide`,
+          `BC = Safety Margin = ${formatInputDistance(construction.safetyMargin, construction.safetyUnit)}`,
+          `CD = Transfer = ${formatInputDistance(construction.transfer, construction.advTransferUnit)}`,
+          `DE = Advance = ${formatInputDistance(construction.advance, construction.advTransferUnit)}`,
+          correctionLineText,
+          guideRunLine
+        ]
       };
     }
 
@@ -1242,6 +1289,45 @@
       `;
     }
 
+    function renderLegend(build) {
+      let legend = makeText(12, 24, "Legend", 3.4, "start", "#111");
+
+      build.legendLines.forEach((line, index) => {
+        legend += makeText(
+          12,
+          30 + (index * 5),
+          line,
+          3.0,
+          "start",
+          "#111"
+        );
+      });
+
+      return legend;
+    }
+
+    function renderBottomResults(build) {
+      return `
+        ${makeText(
+          12,
+          273,
+          `Angle of Aim Point = ${formatAngleHalf(build.angleBGF)}`,
+          3.5,
+          "start",
+          "#111"
+        )}
+
+        ${makeText(
+          12,
+          280,
+          `True Bearing of A from G = ${formatBearingHalfDegree(build.bearingAFromG)}`,
+          3.5,
+          "start",
+          "#111"
+        )}
+      `;
+    }
+
     function renderConstructionGraph(build) {
       const a4WidthMm = 210;
       const a4HeightMm = 297;
@@ -1353,7 +1439,8 @@
 
           ${makeText(12, 10, `Scale: 1 cm = ${formatNumber(scaleNmPerCm, 3)} NM`, 4, "start")}
           ${makeText(12, 16, `1 mm = ${formatNumber(scaleNmPerCm / 10, 3)} NM`, 3.2, "start")}
-          ${makeText(198, 10, "Stationing from Bows", 4, "end")}
+
+          ${renderLegend(build)}
 
           ${makeLine(northArrowX, northArrowY1, northArrowX, northArrowY2, "#111", 0.5)}
           ${renderCentreArrow(northArrowX, northArrowY1, northArrowX, northArrowY2, "#111")}
@@ -1404,24 +1491,7 @@
           ${applicablePoint}
           ${renderPoint(GX, GY, "G", "#ff8c00", 3, -3)}
 
-          <rect
-            x="12"
-            y="260"
-            width="82"
-            height="28"
-            fill="rgba(255,255,255,0.60)"
-            stroke="#111"
-            stroke-width="0.25"
-          />
-
-          <circle cx="17" cy="267" r="0.5" fill="#111" />
-          ${makeText(22, 268, "A to B bearing line", 3, "start")}
-
-          <circle cx="17" cy="274" r="0.5" fill="#7a4b00" />
-          ${makeText(22, 275, "Safety margin", 3, "start")}
-
-          <circle cx="17" cy="281" r="0.5" fill="#ff8c00" />
-          ${makeText(22, 282, "Alter point G", 3, "start")}
+          ${renderBottomResults(build)}
         </svg>
       `;
 
@@ -1463,7 +1533,7 @@
 
         <div class="output-grid">
           <div class="output-box">
-            <div class="output-label">Angle BG${build.applicableLabel}</div>
+            <div class="output-label">Angle to Aim Point</div>
             <div class="output-value">${formatAngleHalf(build.angleBGF)}</div>
           </div>
 
