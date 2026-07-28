@@ -32,6 +32,10 @@
       margin-bottom: 18px;
     }
 
+    .hidden {
+      display: none !important;
+    }
+
     .unit-row {
       display: grid;
       grid-template-columns: 1fr 0.55fr;
@@ -202,7 +206,7 @@
     <h1 class="page-title">Stationing from Bows</h1>
 
     <div class="card">
-      <div class="card-title">Stationing Construction</div>
+      <div class="card-title">Initial CTS Data</div>
 
       <div class="input-section">
         <div class="section-subtitle">Guide Ship Data</div>
@@ -263,7 +267,7 @@
         </div>
       </div>
 
-      <div class="input-section">
+      <div id="constructionSection" class="input-section hidden">
         <div class="section-subtitle">Turn and Construction Data</div>
 
         <div class="input-grid">
@@ -301,7 +305,7 @@
             <div>
               <label>Unit</label>
               <select id="safetyUnit">
-                <option value="metres">metres</option>
+                <option value="meters">meters</option>
                 <option value="yards">yards</option>
                 <option value="cables">cables</option>
               </select>
@@ -320,12 +324,12 @@
             </div>
           </div>
 
-          <div>
+          <div id="surgeRateBox" class="hidden">
             <label>Surge rate in yards per knot</label>
             <input id="surgeRate" type="number" inputmode="decimal" step="0.1" placeholder="80">
           </div>
 
-          <div>
+          <div id="accelerationRateBox" class="hidden">
             <label>Acceleration rate in yards per knot</label>
             <input id="accelerationRate" type="number" inputmode="decimal" step="0.1" placeholder="80">
           </div>
@@ -333,7 +337,7 @@
       </div>
 
       <button id="goBtn" class="go-btn" type="button">
-        GO
+        Calculate CTS
       </button>
 
       <div class="action-grid">
@@ -347,7 +351,7 @@
       </div>
 
       <div id="result" class="result">
-        Enter values to calculate final construction.
+        Enter initial data to calculate CTS.
       </div>
     </div>
   </div>
@@ -356,12 +360,18 @@
     "use strict";
 
     const YARDS_PER_NM = 2025.3718285;
-    const METRES_PER_NM = 1852;
+    const METERS_PER_NM = 1852;
 
     const goBtn = document.getElementById("goBtn");
     const printBtn = document.getElementById("printBtn");
     const saveBtn = document.getElementById("saveBtn");
     const resultBox = document.getElementById("result");
+
+    const constructionSection = document.getElementById("constructionSection");
+    const surgeRateBox = document.getElementById("surgeRateBox");
+    const accelerationRateBox = document.getElementById("accelerationRateBox");
+
+    let ctsState = null;
 
     const basicInputIds = [
       "guideCourse",
@@ -382,25 +392,44 @@
       "turnSeconds"
     ];
 
+    basicInputIds.forEach((id) => {
+      document.getElementById(id).addEventListener("input", () => {
+        resetToInitialMode();
+        updateButton();
+      });
+    });
+
     document
-      .querySelectorAll("input, select")
+      .querySelectorAll("#constructionSection input, #constructionSection select")
       .forEach((control) => {
-        control.addEventListener("input", handleInputChange);
-        control.addEventListener("change", handleInputChange);
+        control.addEventListener("input", handleConstructionChange);
+        control.addEventListener("change", handleConstructionChange);
       });
 
-    goBtn.addEventListener("click", calculate);
+    goBtn.addEventListener("click", handleGo);
     printBtn.addEventListener("click", printGraph);
     saveBtn.addEventListener("click", saveGraphAsImage);
 
-    function handleInputChange() {
-      updateButton();
+    function handleConstructionChange() {
       printBtn.disabled = true;
       saveBtn.disabled = true;
+      updateButton();
+    }
+
+    function resetToInitialMode() {
+      ctsState = null;
+      constructionSection.classList.add("hidden");
+      surgeRateBox.classList.add("hidden");
+      accelerationRateBox.classList.add("hidden");
+      goBtn.textContent = "Calculate CTS";
+      printBtn.disabled = true;
+      saveBtn.disabled = true;
+      resultBox.innerHTML = "Enter initial data to calculate CTS.";
     }
 
     function readNumber(id) {
-      const text = document.getElementById(id).value.trim();
+      const element = document.getElementById(id);
+      const text = element.value.trim();
 
       if (text === "") {
         return Number.NaN;
@@ -477,18 +506,6 @@
       return `${formatNumber(rounded, 1)}°`;
     }
 
-    function formatMinSec(totalSeconds) {
-      const rounded = Math.round(totalSeconds);
-      const minutes = Math.floor(rounded / 60);
-      const seconds = rounded % 60;
-
-      return `${minutes} min ${String(seconds).padStart(2, "0")} sec`;
-    }
-
-    function roundUpToHalf(value) {
-      return Math.ceil(value * 2) / 2;
-    }
-
     function vectorFromBearingAndDistance(bearing, distanceNm) {
       const radians = degToRad(bearing);
 
@@ -540,16 +557,64 @@
       };
     }
 
+    function unitVector(vector) {
+      const length = magnitude(vector.east, vector.north);
+
+      if (length < 0.000001) {
+        return {
+          east: 0,
+          north: 0
+        };
+      }
+
+      return {
+        east: vector.east / length,
+        north: vector.north / length
+      };
+    }
+
     function distanceToNm(value, unit) {
       if (unit === "yards") {
         return value / YARDS_PER_NM;
       }
 
-      if (unit === "metres") {
-        return value / METRES_PER_NM;
+      if (unit === "meters") {
+        return value / METERS_PER_NM;
       }
 
       return value * 0.1;
+    }
+
+    function getPerpendicularUnits(course) {
+      const along = vectorFromBearingAndDistance(course, 1);
+
+      return {
+        along,
+
+        starboard: {
+          east: along.north,
+          north: -along.east
+        },
+
+        port: {
+          east: -along.north,
+          north: along.east
+        }
+      };
+    }
+
+    function angleBetweenVectors(a, b) {
+      const magA = magnitude(a.east, a.north);
+      const magB = magnitude(b.east, b.north);
+
+      if (magA < 0.000001 || magB < 0.000001) {
+        return 0;
+      }
+
+      let cosine = dot(a, b) / (magA * magB);
+      cosine = Math.max(-1, Math.min(1, cosine));
+
+      return radToDeg(Math.acos(cosine));
     }
 
     function getBasicValidationMessage() {
@@ -559,7 +624,7 @@
         const value = readNumber(id);
 
         if (!Number.isFinite(value)) {
-          return "Complete all basic input fields.";
+          return "Complete all initial input fields.";
         }
       }
 
@@ -583,8 +648,8 @@
         return "Recheck own speed.";
       }
 
-      if (data.finalRangeCables < 0) {
-        return "Recheck final station range.";
+      if (data.finalRangeCables <= 0) {
+        return "Final station range must be more than zero.";
       }
 
       if (data.currentRangeCables < 0) {
@@ -656,20 +721,20 @@
       return "";
     }
 
-    function isReadyForGo() {
-      const basicMessage = getBasicValidationMessage();
+    function updateButton() {
+      if (!ctsState) {
+        goBtn.classList.toggle(
+          "valid",
+          getBasicValidationMessage() === ""
+        );
 
-      if (basicMessage !== "") {
-        return false;
+        return;
       }
 
-      const data = getInputs();
-
-      return getConstructionValidationMessage(data) === "";
-    }
-
-    function updateButton() {
-      goBtn.classList.toggle("valid", isReadyForGo());
+      goBtn.classList.toggle(
+        "valid",
+        getConstructionValidationMessage(ctsState.data) === ""
+      );
     }
 
     function calculateStationing(data) {
@@ -737,12 +802,12 @@
         );
 
         minimumSpeedText =
-          `${formatNumber(roundUpToHalf(minimumSpeed), 1)} kn`;
+          `${formatNumber(Math.ceil(minimumSpeed * 2) / 2, 1)} kn`;
       } else {
         minimumSpeed = data.guideSpeed;
 
         minimumSpeedText =
-          `more than ${formatNumber(roundUpToHalf(minimumSpeed), 1)} kn`;
+          `more than ${formatNumber(Math.ceil(minimumSpeed * 2) / 2, 1)} kn`;
       }
 
       if (discriminant < -0.000001) {
@@ -822,76 +887,75 @@
       };
     }
 
-    function getPerpendicularUnits(course) {
-      const along = vectorFromBearingAndDistance(course, 1);
+    function configureConstructionVisibility(data) {
+      constructionSection.classList.remove("hidden");
 
-      return {
-        along,
+      surgeRateBox.classList.add("hidden");
+      accelerationRateBox.classList.add("hidden");
 
-        starboard: {
-          east: along.north,
-          north: -along.east
-        },
-
-        port: {
-          east: -along.north,
-          north: along.east
-        }
-      };
-    }
-
-    function angleBetweenVectors(a, b) {
-      const magA = magnitude(a.east, a.north);
-      const magB = magnitude(b.east, b.north);
-
-      if (magA < 0.000001 || magB < 0.000001) {
-        return 0;
+      if (data.ownSpeed > data.guideSpeed) {
+        surgeRateBox.classList.remove("hidden");
       }
 
-      let cosine = dot(a, b) / (magA * magB);
-      cosine = Math.max(-1, Math.min(1, cosine));
-
-      return radToDeg(Math.acos(cosine));
+      if (data.ownSpeed < data.guideSpeed) {
+        accelerationRateBox.classList.remove("hidden");
+      }
     }
 
     function calculateConstruction(data, solution, construction, turnInfo) {
-      const guideUnits = getPerpendicularUnits(data.guideCourse);
-      const ownUnits = getPerpendicularUnits(solution.courseToSteer);
-
       const A = {
         east: 0,
         north: 0
       };
-
-      const currentPosition = vectorFromBearingAndDistance(
-        data.currentBearing,
-        data.currentRangeCables * 0.1
-      );
 
       const B = vectorFromBearingAndDistance(
         data.finalBearing,
         data.finalRangeCables * 0.1
       );
 
-      const ownSideDot = dot(
-        currentPosition,
-        guideUnits.starboard
+      const ownCurrent = vectorFromBearingAndDistance(
+        data.currentBearing,
+        data.currentRangeCables * 0.1
       );
 
-      const safetySide =
-        ownSideDot >= 0
-          ? guideUnits.starboard
-          : guideUnits.port;
+      const AB = subtract(B, A);
+      const abUnit = unitVector(AB);
 
-      let transferSide;
+      const abPort = {
+        east: -abUnit.north,
+        north: abUnit.east
+      };
+
+      const abStarboard = {
+        east: abUnit.north,
+        north: -abUnit.east
+      };
+
+      const ownFromB = subtract(ownCurrent, B);
+
+      const safetySide =
+        dot(ownFromB, abStarboard) >= dot(ownFromB, abPort)
+          ? abStarboard
+          : abPort;
+
+      const ctsUnits = getPerpendicularUnits(solution.courseToSteer);
+
+      let transferSide = ctsUnits.port;
 
       if (turnInfo.direction === "Port") {
-        transferSide = ownUnits.port;
-      } else if (turnInfo.direction === "Starboard") {
-        transferSide = ownUnits.starboard;
-      } else {
-        transferSide = safetySide;
+        transferSide = ctsUnits.starboard;
       }
+
+      if (turnInfo.direction === "Starboard") {
+        transferSide = ctsUnits.port;
+      }
+
+      const guideUnits = getPerpendicularUnits(data.guideCourse);
+
+      const safetyNm = distanceToNm(
+        construction.safetyMargin,
+        construction.safetyUnit
+      );
 
       const advanceNm = distanceToNm(
         construction.advance,
@@ -901,11 +965,6 @@
       const transferNm = distanceToNm(
         construction.transfer,
         construction.advTransferUnit
-      );
-
-      const safetyNm = distanceToNm(
-        construction.safetyMargin,
-        construction.safetyUnit
       );
 
       const turnTotalSeconds =
@@ -921,136 +980,86 @@
         guideRunNm
       );
 
-      const A2 = add(
-        A,
-        guideRunVector
-      );
-
-      const B2 = add(
-        B,
-        guideRunVector
-      );
-
-      const safetyVector = multiply(
-        safetySide,
-        safetyNm
-      );
-
       const C = add(
-        B2,
-        safetyVector
+        B,
+        multiply(safetySide, safetyNm)
       );
 
-      let correctionLabel = "F";
+      const D = add(
+        C,
+        multiply(transferSide, transferNm)
+      );
+
+      const E = subtract(
+        D,
+        multiply(ctsUnits.along, advanceNm)
+      );
+
+      let applicableLabel = "E";
       let correctionName = "No speed correction";
       let correctionYards = 0;
-      let correctionNmSigned = 0;
+      let F = E;
 
       if (data.ownSpeed > data.guideSpeed) {
-        correctionLabel = "F1";
+        applicableLabel = "F1";
         correctionName = "Surge";
         correctionYards =
           construction.surgeRate * (data.ownSpeed - data.guideSpeed);
 
-        correctionNmSigned =
-          correctionYards / YARDS_PER_NM;
+        F = add(
+          E,
+          multiply(
+            ctsUnits.along,
+            correctionYards / YARDS_PER_NM
+          )
+        );
       }
 
       if (data.ownSpeed < data.guideSpeed) {
-        correctionLabel = "F2";
+        applicableLabel = "F2";
         correctionName = "Acceleration";
         correctionYards =
           construction.accelerationRate * (data.guideSpeed - data.ownSpeed);
 
-        correctionNmSigned =
-          -correctionYards / YARDS_PER_NM;
+        F = subtract(
+          E,
+          multiply(
+            ctsUnits.along,
+            correctionYards / YARDS_PER_NM
+          )
+        );
       }
 
-      const advanceVector = multiply(
-        ownUnits.along,
-        advanceNm
-      );
-
-      const correctionVector = multiply(
-        ownUnits.along,
-        correctionNmSigned
-      );
-
-      const transferVector = multiply(
-        transferSide,
-        transferNm
-      );
-
-      const G = subtract(
-        subtract(
-          subtract(
-            C,
-            transferVector
-          ),
-          correctionVector
-        ),
-        advanceVector
-      );
-
-      const E = add(
-        G,
-        advanceVector
-      );
-
-      const F = add(
+      const G = add(
         E,
-        correctionVector
+        guideRunVector
       );
 
-      const GB = subtract(
-        B,
-        G
-      );
-
-      const GF = subtract(
-        F,
-        G
-      );
-
-      const angleBGF =
-        angleBetweenVectors(GB, GF);
-
-      const GA = subtract(
-        A,
-        G
-      );
-
-      const bearingAFromG =
-        bearingFromVector(GA.east, GA.north);
+      const GB = subtract(B, G);
+      const GF = subtract(F, G);
+      const GA = subtract(A, G);
 
       return {
         A,
-        A2,
         B,
-        B2,
         C,
+        D,
         E,
         F,
         G,
-        currentPosition,
+        ownCurrent,
 
-        guideRunVector,
-        safetyVector,
-        advanceVector,
-        correctionVector,
-        transferVector,
+        AB,
+        GB,
+        GF,
+        GA,
 
-        angleBGF,
-        bearingAFromG,
-        correctionLabel,
+        applicableLabel,
         correctionName,
         correctionYards,
-        correctionNmSigned,
-        turnTotalSeconds,
-        guideRunNm,
-        safetyNm,
-        advanceNm,
-        transferNm
+
+        angleBGF: angleBetweenVectors(GB, GF),
+        bearingAFromG: bearingFromVector(GA.east, GA.north)
       };
     }
 
@@ -1201,7 +1210,7 @@
       `;
     }
 
-    function renderConstructionGraph(data, solution, construction, build) {
+    function renderConstructionGraph(build) {
       const a4WidthMm = 210;
       const a4HeightMm = 297;
       const paddingMm = 14;
@@ -1211,14 +1220,12 @@
 
       const points = [
         build.A,
-        build.A2,
         build.B,
-        build.B2,
         build.C,
+        build.D,
         build.E,
         build.F,
-        build.G,
-        build.currentPosition
+        build.G
       ];
 
       let minEast = Math.min(...points.map(p => p.east));
@@ -1231,7 +1238,7 @@
 
       const marginNm = Math.max(
         0.2,
-        Math.max(widthNm, heightNm) * 0.20
+        Math.max(widthNm, heightNm) * 0.22
       );
 
       minEast -= marginNm;
@@ -1266,17 +1273,14 @@
       const AX = x(build.A.east);
       const AY = y(build.A.north);
 
-      const A2X = x(build.A2.east);
-      const A2Y = y(build.A2.north);
-
       const BX = x(build.B.east);
       const BY = y(build.B.north);
 
-      const B2X = x(build.B2.east);
-      const B2Y = y(build.B2.north);
-
       const CX = x(build.C.east);
       const CY = y(build.C.north);
+
+      const DX = x(build.D.east);
+      const DY = y(build.D.north);
 
       const EX = x(build.E.east);
       const EY = y(build.E.north);
@@ -1287,28 +1291,25 @@
       const GX = x(build.G.east);
       const GY = y(build.G.north);
 
-      const curX = x(build.currentPosition.east);
-      const curY = y(build.currentPosition.north);
-
       const northArrowX = 186;
       const northArrowY1 = 34;
       const northArrowY2 = 18;
 
-      const correctionLine =
-        Math.abs(build.correctionNmSigned) > 0.000001
-          ? `
+      const correctionSegment =
+        build.applicableLabel === "E"
+          ? ""
+          : `
             ${makeLine(EX, EY, FX, FY, "#8a1a1a", 0.5)}
             ${renderCentreArrow(EX, EY, FX, FY, "#8a1a1a")}
             ${makeText(
               (EX + FX) / 2,
               (EY + FY) / 2 - 3,
-              build.correctionName,
+              build.applicableLabel,
               3.0,
               "middle",
               "#8a1a1a"
             )}
-          `
-          : "";
+          `;
 
       const svg = `
         <svg
@@ -1337,14 +1338,6 @@
             "start"
           )}
 
-          ${makeText(
-            198,
-            10,
-            "Stationing from Bows",
-            4,
-            "end"
-          )}
-
           ${makeLine(
             northArrowX,
             northArrowY1,
@@ -1370,300 +1363,48 @@
             "middle"
           )}
 
-          ${makeLine(
-            AX,
-            AY,
-            A2X,
-            A2Y,
-            "#111",
-            0.5
-          )}
+          ${makeLine(AX, AY, BX, BY, "#111", 0.5)}
+          ${renderCentreArrow(AX, AY, BX, BY, "#111")}
+          ${makeText((AX + BX) / 2, (AY + BY) / 2 - 3, "AB", 3.0)}
 
-          ${renderCentreArrow(
-            AX,
-            AY,
-            A2X,
-            A2Y,
-            "#111"
-          )}
+          ${makeLine(BX, BY, CX, CY, "#7a4b00", 0.5)}
+          ${renderCentreArrow(BX, BY, CX, CY, "#7a4b00")}
+          ${makeText((BX + CX) / 2, (BY + CY) / 2 - 3, "Safety margin", 3.0, "middle", "#7a4b00")}
 
-          ${makeText(
-            (AX + A2X) / 2,
-            (AY + A2Y) / 2 - 3,
-            "Guide run during turn",
-            3.0,
-            "middle",
-            "#111"
-          )}
+          ${makeLine(CX, CY, DX, DY, "#0b4fbd", 0.5)}
+          ${renderCentreArrow(CX, CY, DX, DY, "#0b4fbd")}
+          ${makeText((CX + DX) / 2, (CY + DY) / 2 - 3, "Transfer", 3.0, "middle", "#0b4fbd")}
 
-          ${makeLine(
-            AX,
-            AY,
-            BX,
-            BY,
-            "#444",
-            0.5,
-            "2 2"
-          )}
+          ${makeLine(DX, DY, EX, EY, "#0b4fbd", 0.5)}
+          ${renderCentreArrow(DX, DY, EX, EY, "#0b4fbd")}
+          ${makeText((DX + EX) / 2, (DY + EY) / 2 - 3, "Advance", 3.0, "middle", "#0b4fbd")}
 
-          ${makeText(
-            (AX + BX) / 2,
-            (AY + BY) / 2 - 3,
-            "Final station from guide",
-            2.9,
-            "middle",
-            "#444"
-          )}
+          ${correctionSegment}
 
-          ${makeLine(
-            A2X,
-            A2Y,
-            B2X,
-            B2Y,
-            "#444",
-            0.5,
-            "2 2"
-          )}
+          ${makeLine(EX, EY, GX, GY, "#111", 0.5)}
+          ${renderCentreArrow(EX, EY, GX, GY, "#111")}
+          ${makeText((EX + GX) / 2, (EY + GY) / 2 - 3, "Guide run", 3.0)}
 
-          ${makeLine(
-            B2X,
-            B2Y,
-            CX,
-            CY,
-            "#7a4b00",
-            0.5
-          )}
+          ${makeLine(GX, GY, BX, BY, "#8a1a1a", 0.5, "2 2")}
+          ${makeText((GX + BX) / 2, (GY + BY) / 2 + 4, "GB", 3.0, "middle", "#8a1a1a")}
 
-          ${renderCentreArrow(
-            B2X,
-            B2Y,
-            CX,
-            CY,
-            "#7a4b00"
-          )}
-
-          ${makeText(
-            (B2X + CX) / 2,
-            (B2Y + CY) / 2 - 3,
-            "Safety margin",
-            3.0,
-            "middle",
-            "#7a4b00"
-          )}
-
-          ${makeLine(
-            GX,
-            GY,
-            EX,
-            EY,
-            "#0b4fbd",
-            0.5
-          )}
-
-          ${renderCentreArrow(
-            GX,
-            GY,
-            EX,
-            EY,
-            "#0b4fbd"
-          )}
-
-          ${makeText(
-            (GX + EX) / 2,
-            (GY + EY) / 2 - 3,
-            "Advance",
-            3.0,
-            "middle",
-            "#0b4fbd"
-          )}
-
-          ${correctionLine}
-
-          ${makeLine(
-            FX,
-            FY,
-            CX,
-            CY,
-            "#0b4fbd",
-            0.5
-          )}
-
-          ${renderCentreArrow(
-            FX,
-            FY,
-            CX,
-            CY,
-            "#0b4fbd"
-          )}
-
-          ${makeText(
-            (FX + CX) / 2,
-            (FY + CY) / 2 - 3,
-            "Transfer",
-            3.0,
-            "middle",
-            "#0b4fbd"
-          )}
-
-          ${makeLine(
-            GX,
-            GY,
-            BX,
-            BY,
-            "#8a1a1a",
-            0.5,
-            "2 2"
-          )}
-
-          ${makeText(
-            (GX + BX) / 2,
-            (GY + BY) / 2 + 4,
-            "GB",
-            3.0,
-            "middle",
-            "#8a1a1a"
-          )}
-
-          ${makeLine(
-            GX,
-            GY,
-            FX,
-            FY,
-            "#8a1a1a",
-            0.5,
-            "3 2"
-          )}
-
+          ${makeLine(GX, GY, FX, FY, "#8a1a1a", 0.5, "2 2")}
           ${makeText(
             (GX + FX) / 2,
             (GY + FY) / 2 + 4,
-            `G${build.correctionLabel}`,
+            `G${build.applicableLabel}`,
             3.0,
             "middle",
             "#8a1a1a"
           )}
 
-          ${makeLine(
-            curX,
-            curY,
-            GX,
-            GY,
-            "#555",
-            0.5,
-            "2 2"
-          )}
-
-          ${makeText(
-            (curX + GX) / 2,
-            (curY + GY) / 2 - 3,
-            "Approach to G",
-            3.0,
-            "middle",
-            "#555"
-          )}
-
-          ${renderPoint(
-            AX,
-            AY,
-            "A Guide",
-            "#111",
-            3,
-            -3
-          )}
-
-          ${renderPoint(
-            A2X,
-            A2Y,
-            "A after turn",
-            "#111",
-            3,
-            -3
-          )}
-
-          ${renderPoint(
-            BX,
-            BY,
-            "B Final station",
-            "#8a1a1a",
-            3,
-            -3
-          )}
-
-          ${renderPoint(
-            B2X,
-            B2Y,
-            "B after turn",
-            "#8a1a1a",
-            3,
-            -3
-          )}
-
-          ${renderPoint(
-            CX,
-            CY,
-            "C Safety point",
-            "#7a4b00",
-            3,
-            -3
-          )}
-
-          ${renderPoint(
-            GX,
-            GY,
-            "G Alter point",
-            "#ff8c00",
-            3,
-            -3
-          )}
-
-          ${renderPoint(
-            EX,
-            EY,
-            "E",
-            "#0b4fbd",
-            3,
-            -3
-          )}
-
-          ${renderPoint(
-            FX,
-            FY,
-            build.correctionLabel,
-            "#8a1a1a",
-            3,
-            -3
-          )}
-
-          ${renderPoint(
-            curX,
-            curY,
-            "Own current",
-            "#0b4fbd",
-            3,
-            -3
-          )}
-
-          <rect
-            x="12"
-            y="260"
-            width="116"
-            height="28"
-            fill="rgba(255,255,255,0.60)"
-            stroke="#111"
-            stroke-width="0.25"
-          />
-
-          <circle cx="17" cy="267" r="0.5" fill="#111" />
-          ${makeText(22, 268, "Guide point A", 3, "start")}
-
-          <circle cx="17" cy="274" r="0.5" fill="#8a1a1a" />
-          ${makeText(22, 275, "Final station B / applicable F", 3, "start")}
-
-          <circle cx="17" cy="281" r="0.5" fill="#ff8c00" />
-          ${makeText(22, 282, "Alter point G", 3, "start")}
-
-          <circle cx="72" cy="281" r="0.5" fill="#7a4b00" />
-          ${makeText(77, 282, "Safety point C", 3, "start")}
+          ${renderPoint(AX, AY, "A", "#111", 3, -3)}
+          ${renderPoint(BX, BY, "B", "#111", 3, -3)}
+          ${renderPoint(CX, CY, "C", "#7a4b00", 3, -3)}
+          ${renderPoint(DX, DY, "D", "#0b4fbd", 3, -3)}
+          ${renderPoint(EX, EY, "E", "#0b4fbd", 3, -3)}
+          ${renderPoint(FX, FY, build.applicableLabel, "#8a1a1a", 3, -3)}
+          ${renderPoint(GX, GY, "G", "#ff8c00", 3, -3)}
         </svg>
       `;
 
@@ -1681,11 +1422,19 @@
       saveBtn.disabled = true;
     }
 
-    function calculate() {
-      const basicValidationMessage = getBasicValidationMessage();
+    function handleGo() {
+      if (!ctsState) {
+        calculateInitialCTS();
+      } else {
+        calculateFinalConstruction();
+      }
+    }
 
-      if (basicValidationMessage !== "") {
-        showWarning(basicValidationMessage);
+    function calculateInitialCTS() {
+      const validationMessage = getBasicValidationMessage();
+
+      if (validationMessage !== "") {
+        showWarning(validationMessage);
         updateButton();
         return;
       }
@@ -1719,8 +1468,47 @@
         return;
       }
 
+      const turnInfo = calculateShortestTurn(
+        solution.courseToSteer,
+        data.guideCourse
+      );
+
+      ctsState = {
+        data,
+        solution,
+        turnInfo
+      };
+
+      configureConstructionVisibility(data);
+
+      resultBox.innerHTML = `
+        <div class="success">CTS calculated.</div>
+
+        <div class="output-grid">
+          <div class="output-box">
+            <div class="output-label">Course to steer</div>
+            <div class="output-value">
+              ${formatBearingHalfDegree(solution.courseToSteer)}
+              (${formatAngleHalf(turnInfo.angle)} ${turnInfo.direction} to guide course)
+            </div>
+          </div>
+        </div>
+
+        <div class="small-note">
+          Enter wheel, advance, transfer, time of turn and required construction data.
+        </div>
+      `;
+
+      goBtn.textContent = "Generate Graph";
+      printBtn.disabled = true;
+      saveBtn.disabled = true;
+
+      updateButton();
+    }
+
+    function calculateFinalConstruction() {
       const constructionValidationMessage =
-        getConstructionValidationMessage(data);
+        getConstructionValidationMessage(ctsState.data);
 
       if (constructionValidationMessage !== "") {
         showWarning(constructionValidationMessage);
@@ -1730,31 +1518,26 @@
 
       const constructionInputs = getConstructionInputs();
 
-      const turnInfo = calculateShortestTurn(
-        solution.courseToSteer,
-        data.guideCourse
-      );
-
       const build = calculateConstruction(
-        data,
-        solution,
+        ctsState.data,
+        ctsState.solution,
         constructionInputs,
-        turnInfo
+        ctsState.turnInfo
       );
 
-      const graph = renderConstructionGraph(
-        data,
-        solution,
-        constructionInputs,
-        build
-      );
+      const graph = renderConstructionGraph(build);
+
+      const angleLabel =
+        build.applicableLabel === "E"
+          ? "Angle BGE"
+          : `Angle BG${build.applicableLabel}`;
 
       resultBox.innerHTML = `
-        <div class="success">Stationing construction calculated.</div>
+        <div class="success">Stationing graph generated.</div>
 
         <div class="output-grid">
           <div class="output-box">
-            <div class="output-label">Angle BG${build.correctionLabel}</div>
+            <div class="output-label">${angleLabel}</div>
             <div class="output-value">${formatAngleHalf(build.angleBGF)}</div>
           </div>
 
@@ -1762,17 +1545,6 @@
             <div class="output-label">True bearing of A from G</div>
             <div class="output-value">${formatBearingHalfDegree(build.bearingAFromG)}</div>
           </div>
-        </div>
-
-        <div class="small-note">
-          Applicable point used: ${build.correctionLabel}.
-          Turn required from CTS to guide course:
-          ${formatAngleHalf(turnInfo.angle)} ${turnInfo.direction}.
-          Time of turn:
-          ${formatMinSec(build.turnTotalSeconds)}.
-          Correction applied:
-          ${build.correctionName}
-          ${formatNumber(Math.abs(build.correctionYards), 1)} yards.
         </div>
 
         <div class="graph-scroll">
