@@ -32,6 +32,19 @@
       margin-bottom: 18px;
     }
 
+    .unit-row {
+      display: grid;
+      grid-template-columns: 1fr 0.55fr;
+      gap: 10px;
+      align-items: end;
+    }
+
+    .time-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
     .output-grid {
       display: grid;
       grid-template-columns: 1fr;
@@ -250,6 +263,54 @@
         </div>
       </div>
 
+      <div class="input-section">
+        <div class="section-subtitle">Turn Allowance Data</div>
+
+        <div class="input-grid">
+          <div>
+            <label>Wheel used in degrees</label>
+            <input id="wheelUsed" type="number" inputmode="decimal" step="0.1" placeholder="15">
+          </div>
+
+          <div class="unit-row">
+            <div>
+              <label>Advance</label>
+              <input id="advance" type="number" inputmode="decimal" step="0.1" placeholder="4">
+            </div>
+
+            <div>
+              <label>Unit</label>
+              <select id="advTransferUnit">
+                <option value="cables">cables</option>
+                <option value="yards">yards</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label>Transfer</label>
+            <input id="transfer" type="number" inputmode="decimal" step="0.1" placeholder="2">
+          </div>
+
+          <div class="time-row">
+            <div>
+              <label>Time of turn minutes</label>
+              <input id="turnMinutes" type="number" inputmode="numeric" step="1" placeholder="2">
+            </div>
+
+            <div>
+              <label>Time of turn seconds</label>
+              <input id="turnSeconds" type="number" inputmode="numeric" step="1" placeholder="30">
+            </div>
+          </div>
+
+          <div>
+            <label>Surge rate of own ship in yards per knot</label>
+            <input id="surgeRate" type="number" inputmode="decimal" step="0.1" placeholder="80">
+          </div>
+        </div>
+      </div>
+
       <button id="goBtn" class="go-btn" type="button">
         GO
       </button>
@@ -273,12 +334,14 @@
   <script>
     "use strict";
 
+    const YARDS_PER_NM = 2025.3718285;
+
     const goBtn = document.getElementById("goBtn");
     const printBtn = document.getElementById("printBtn");
     const saveBtn = document.getElementById("saveBtn");
     const resultBox = document.getElementById("result");
 
-    const inputIds = [
+    const basicInputIds = [
       "guideCourse",
       "guideSpeed",
       "finalBearing",
@@ -288,10 +351,20 @@
       "ownSpeed"
     ];
 
+    const turnInputIds = [
+      "wheelUsed",
+      "advance",
+      "transfer",
+      "turnMinutes",
+      "turnSeconds",
+      "surgeRate"
+    ];
+
     document
-      .querySelectorAll("input")
+      .querySelectorAll("input, select")
       .forEach((input) => {
         input.addEventListener("input", handleInputChange);
+        input.addEventListener("change", handleInputChange);
       });
 
     goBtn.addEventListener("click", calculate);
@@ -329,6 +402,24 @@
       };
     }
 
+    function getTurnInputs() {
+      return {
+        wheelUsed: readNumber("wheelUsed"),
+        advance: readNumber("advance"),
+        transfer: readNumber("transfer"),
+        unit: document.getElementById("advTransferUnit").value,
+        turnMinutes: readNumber("turnMinutes"),
+        turnSeconds: readNumber("turnSeconds"),
+        surgeRate: readNumber("surgeRate")
+      };
+    }
+
+    function hasAnyTurnInput() {
+      return turnInputIds.some((id) => {
+        return document.getElementById(id).value.trim() !== "";
+      });
+    }
+
     function degToRad(degrees) {
       return degrees * Math.PI / 180;
     }
@@ -362,12 +453,25 @@
       return Number(value).toFixed(decimals);
     }
 
+    function formatAngleHalf(value) {
+      const rounded = Math.round(Math.abs(value) * 2) / 2;
+      return `${formatNumber(rounded, 1)}°`;
+    }
+
     function formatHours(hours) {
       const totalMinutes = Math.round(hours * 60);
       const h = Math.floor(totalMinutes / 60);
       const m = totalMinutes % 60;
 
       return `${formatNumber(hours, 2)} hrs (${h} h ${String(m).padStart(2, "0")} min)`;
+    }
+
+    function formatMinSec(totalSeconds) {
+      const rounded = Math.round(totalSeconds);
+      const minutes = Math.floor(rounded / 60);
+      const seconds = rounded % 60;
+
+      return `${minutes} min ${String(seconds).padStart(2, "0")} sec`;
     }
 
     function roundUpToHalf(value) {
@@ -404,14 +508,35 @@
       return (a.east * b.east) + (a.north * b.north);
     }
 
-    function getValidationMessage() {
+    function subtract(a, b) {
+      return {
+        east: a.east - b.east,
+        north: a.north - b.north
+      };
+    }
+
+    function add(a, b) {
+      return {
+        east: a.east + b.east,
+        north: a.north + b.north
+      };
+    }
+
+    function multiply(vector, factor) {
+      return {
+        east: vector.east * factor,
+        north: vector.north * factor
+      };
+    }
+
+    function getBasicValidationMessage() {
       const data = getInputs();
 
-      for (const id of inputIds) {
+      for (const id of basicInputIds) {
         const value = readNumber(id);
 
         if (!Number.isFinite(value)) {
-          return "Complete all input fields.";
+          return "Complete all basic input fields.";
         }
       }
 
@@ -446,12 +571,54 @@
       return "";
     }
 
-    function isValidInput() {
-      return getValidationMessage() === "";
+    function getTurnValidationMessage() {
+      const turn = getTurnInputs();
+
+      for (const id of turnInputIds) {
+        const value = readNumber(id);
+
+        if (!Number.isFinite(value)) {
+          return "Complete all turn allowance input fields.";
+        }
+      }
+
+      if (turn.wheelUsed <= 0 || turn.wheelUsed > 45) {
+        return "Wheel used must be more than 0° and not more than 45°.";
+      }
+
+      if (turn.advance < 0) {
+        return "Recheck advance value.";
+      }
+
+      if (turn.transfer < 0) {
+        return "Recheck transfer value.";
+      }
+
+      if (turn.turnMinutes < 0) {
+        return "Recheck turn minutes.";
+      }
+
+      if (turn.turnSeconds < 0 || turn.turnSeconds >= 60) {
+        return "Turn seconds must be from 0 to 59.";
+      }
+
+      if ((turn.turnMinutes * 60) + turn.turnSeconds <= 0) {
+        return "Time of turn must be more than zero.";
+      }
+
+      if (turn.surgeRate < 0) {
+        return "Recheck surge rate.";
+      }
+
+      return "";
+    }
+
+    function isBasicValid() {
+      return getBasicValidationMessage() === "";
     }
 
     function updateButton() {
-      goBtn.classList.toggle("valid", isValidInput());
+      goBtn.classList.toggle("valid", isBasicValid());
     }
 
     function calculateStationing(data) {
@@ -588,9 +755,232 @@
         ownDistanceNm,
         relativeDistanceNm,
         relativeSpeed,
-        relativeTrackBearing,
-        minimumSpeed,
-        minimumSpeedText
+        relativeTrackBearing
+      };
+    }
+
+    function calculateShortestTurn(fromCourse, toCourse) {
+      const clockwise = normalizeBearing(toCourse - fromCourse);
+
+      if (clockwise === 0) {
+        return {
+          angle: 0,
+          direction: "No turn"
+        };
+      }
+
+      if (clockwise <= 180) {
+        return {
+          angle: clockwise,
+          direction: "Starboard"
+        };
+      }
+
+      return {
+        angle: 360 - clockwise,
+        direction: "Port"
+      };
+    }
+
+    function distanceInputToNm(value, unit) {
+      if (unit === "yards") {
+        return value / YARDS_PER_NM;
+      }
+
+      return value * 0.1;
+    }
+
+    function calculateTurnAllowance(data, solution, turnInfo, turnData) {
+      const currentPosition = vectorFromBearingAndDistance(
+        data.currentBearing,
+        data.currentRangeCables * 0.1
+      );
+
+      const finalPosition = vectorFromBearingAndDistance(
+        data.finalBearing,
+        data.finalRangeCables * 0.1
+      );
+
+      const ownCourseUnit = vectorFromBearingAndDistance(
+        solution.courseToSteer,
+        1
+      );
+
+      const guideCourseUnit = vectorFromBearingAndDistance(
+        data.guideCourse,
+        1
+      );
+
+      const sideUnit =
+        turnInfo.direction === "Port"
+          ? {
+              east: -ownCourseUnit.north,
+              north: ownCourseUnit.east
+            }
+          : {
+              east: ownCourseUnit.north,
+              north: -ownCourseUnit.east
+            };
+
+      const advanceNm = distanceInputToNm(
+        turnData.advance,
+        turnData.unit
+      );
+
+      const transferNm = distanceInputToNm(
+        turnData.transfer,
+        turnData.unit
+      );
+
+      const turnTotalSeconds =
+        (turnData.turnMinutes * 60) + turnData.turnSeconds;
+
+      const turnHours = turnTotalSeconds / 3600;
+
+      const speedAdvantage = Math.max(
+        0,
+        data.ownSpeed - data.guideSpeed
+      );
+
+      const surgeYards =
+        turnData.surgeRate * speedAdvantage;
+
+      const surgeNm =
+        surgeYards / YARDS_PER_NM;
+
+      const advanceSurgeVector = multiply(
+        ownCourseUnit,
+        advanceNm + surgeNm
+      );
+
+      const transferVector = multiply(
+        sideUnit,
+        transferNm
+      );
+
+      const ownTurnVector = add(
+        advanceSurgeVector,
+        transferVector
+      );
+
+      const guideRunNm =
+        data.guideSpeed * turnHours;
+
+      const guideRunVector = multiply(
+        guideCourseUnit,
+        guideRunNm
+      );
+
+      const finalStationAfterTurn = add(
+        finalPosition,
+        guideRunVector
+      );
+
+      const alterPosition = subtract(
+        finalStationAfterTurn,
+        ownTurnVector
+      );
+
+      const alterationToFinalNow = subtract(
+        finalPosition,
+        alterPosition
+      );
+
+      const bearingOfFinalFromAlter = bearingFromVector(
+        alterationToFinalNow.east,
+        alterationToFinalNow.north
+      );
+
+      const rangeOfFinalFromAlterNm = magnitude(
+        alterationToFinalNow.east,
+        alterationToFinalNow.north
+      );
+
+      const ownVelocity = velocityFromCourseAndSpeed(
+        solution.courseToSteer,
+        data.ownSpeed
+      );
+
+      const guideVelocity = velocityFromCourseAndSpeed(
+        data.guideCourse,
+        data.guideSpeed
+      );
+
+      const relativeVelocity = subtract(
+        ownVelocity,
+        guideVelocity
+      );
+
+      const currentToAlter = subtract(
+        alterPosition,
+        currentPosition
+      );
+
+      const relativeVelocitySq =
+        (relativeVelocity.east * relativeVelocity.east) +
+        (relativeVelocity.north * relativeVelocity.north);
+
+      let timeToAlterHours = Number.NaN;
+      let crossTrackNm = Number.NaN;
+
+      if (relativeVelocitySq > 0.000001) {
+        timeToAlterHours =
+          dot(currentToAlter, relativeVelocity) / relativeVelocitySq;
+
+        const closestPoint = add(
+          currentPosition,
+          multiply(relativeVelocity, timeToAlterHours)
+        );
+
+        crossTrackNm = magnitude(
+          alterPosition.east - closestPoint.east,
+          alterPosition.north - closestPoint.north
+        );
+      }
+
+      const approachBearing = bearingFromVector(
+        currentToAlter.east,
+        currentToAlter.north
+      );
+
+      const approachRangeNm = magnitude(
+        currentToAlter.east,
+        currentToAlter.north
+      );
+
+      const advanceTransferUnitText =
+        turnData.unit === "yards"
+          ? "yards"
+          : "cables";
+
+      return {
+        currentPosition,
+        finalPosition,
+        finalStationAfterTurn,
+        alterPosition,
+
+        ownCourseUnit,
+        guideCourseUnit,
+        advanceSurgeVector,
+        transferVector,
+        ownTurnVector,
+        guideRunVector,
+
+        advanceNm,
+        transferNm,
+        surgeNm,
+        surgeYards,
+        speedAdvantage,
+        guideRunNm,
+
+        turnTotalSeconds,
+        bearingOfFinalFromAlter,
+        rangeOfFinalFromAlterNm,
+        approachBearing,
+        approachRangeNm,
+        timeToAlterHours,
+        crossTrackNm,
+        advanceTransferUnitText
       };
     }
 
@@ -691,7 +1081,7 @@
       const midX = (x1 + x2) / 2;
       const midY = (y1 + y2) / 2;
 
-      const arrowLength = 1.2;
+      const arrowLength = 1.1;
       const arrowWidth = 0.9;
 
       const tipX = midX + (ux * arrowLength / 2);
@@ -741,7 +1131,7 @@
       `;
     }
 
-    function renderMovementGraph(data, solution) {
+    function renderMovementGraph(data, solution, turnInfo, turnCalc) {
       const a4WidthMm = 210;
       const a4HeightMm = 297;
       const paddingMm = 14;
@@ -749,44 +1139,34 @@
       const usableWidthCm = (a4WidthMm - (2 * paddingMm)) / 10;
       const usableHeightCm = (a4HeightMm - (2 * paddingMm)) / 10;
 
-      const currentRangeNm = data.currentRangeCables * 0.1;
-      const finalRangeNm = data.finalRangeCables * 0.1;
-
-      const guideStart = {
+      const guideAtAlter = {
         east: 0,
         north: 0
       };
 
-      const guideVelocity = velocityFromCourseAndSpeed(
-        data.guideCourse,
-        data.guideSpeed
+      const guideAfterTurn = turnCalc.guideRunVector;
+
+      const alterPosition = turnCalc.alterPosition;
+      const currentPosition = turnCalc.currentPosition;
+      const finalPosition = turnCalc.finalPosition;
+      const finalAfterTurn = turnCalc.finalStationAfterTurn;
+
+      const advanceEnd = add(
+        alterPosition,
+        turnCalc.advanceSurgeVector
       );
 
-      const guideFinal = {
-        east: guideStart.east + (guideVelocity.east * solution.timeHours),
-        north: guideStart.north + (guideVelocity.north * solution.timeHours)
-      };
-
-      const ownCurrent = vectorFromBearingAndDistance(
-        data.currentBearing,
-        currentRangeNm
-      );
-
-      const finalRelativeFromGuide = vectorFromBearingAndDistance(
-        data.finalBearing,
-        finalRangeNm
-      );
-
-      const ownFinal = {
-        east: guideFinal.east + finalRelativeFromGuide.east,
-        north: guideFinal.north + finalRelativeFromGuide.north
-      };
+      const transferEnd = finalAfterTurn;
 
       const points = [
-        guideStart,
-        guideFinal,
-        ownCurrent,
-        ownFinal
+        guideAtAlter,
+        guideAfterTurn,
+        currentPosition,
+        finalPosition,
+        alterPosition,
+        advanceEnd,
+        transferEnd,
+        finalAfterTurn
       ];
 
       let minEast = Math.min(...points.map(p => p.east));
@@ -799,7 +1179,7 @@
 
       const marginNm = Math.max(
         0.2,
-        Math.max(widthNm, heightNm) * 0.18
+        Math.max(widthNm, heightNm) * 0.20
       );
 
       minEast -= marginNm;
@@ -831,17 +1211,26 @@
         return offsetY + ((maxNorth - north) / scaleNmPerCm) * 10;
       }
 
-      const guideStartX = x(guideStart.east);
-      const guideStartY = y(guideStart.north);
+      const gX = x(guideAtAlter.east);
+      const gY = y(guideAtAlter.north);
 
-      const guideFinalX = x(guideFinal.east);
-      const guideFinalY = y(guideFinal.north);
+      const g2X = x(guideAfterTurn.east);
+      const g2Y = y(guideAfterTurn.north);
 
-      const ownCurrentX = x(ownCurrent.east);
-      const ownCurrentY = y(ownCurrent.north);
+      const curX = x(currentPosition.east);
+      const curY = y(currentPosition.north);
 
-      const ownFinalX = x(ownFinal.east);
-      const ownFinalY = y(ownFinal.north);
+      const altX = x(alterPosition.east);
+      const altY = y(alterPosition.north);
+
+      const finalX = x(finalPosition.east);
+      const finalY = y(finalPosition.north);
+
+      const finalTurnX = x(finalAfterTurn.east);
+      const finalTurnY = y(finalAfterTurn.north);
+
+      const advX = x(advanceEnd.east);
+      const advY = y(advanceEnd.north);
 
       const northArrowX = 186;
       const northArrowY1 = 34;
@@ -908,115 +1297,188 @@
           )}
 
           ${makeLine(
-            guideStartX,
-            guideStartY,
-            guideFinalX,
-            guideFinalY,
-            "#111",
-            0.5
-          )}
-
-          ${renderCentreArrow(
-            guideStartX,
-            guideStartY,
-            guideFinalX,
-            guideFinalY,
-            "#111"
-          )}
-
-          ${makeText(
-            (guideStartX + guideFinalX) / 2,
-            (guideStartY + guideFinalY) / 2 - 3,
-            "Guide movement",
-            3.1,
-            "middle"
-          )}
-
-          ${makeLine(
-            ownCurrentX,
-            ownCurrentY,
-            ownFinalX,
-            ownFinalY,
+            curX,
+            curY,
+            altX,
+            altY,
             "#0b4fbd",
-            0.5
-          )}
-
-          ${renderCentreArrow(
-            ownCurrentX,
-            ownCurrentY,
-            ownFinalX,
-            ownFinalY,
-            "#0b4fbd"
-          )}
-
-          ${makeText(
-            (ownCurrentX + ownFinalX) / 2,
-            (ownCurrentY + ownFinalY) / 2 + 5,
-            `Own CTS ${formatBearingHalfDegree(solution.courseToSteer)}`,
-            3.1,
-            "middle",
-            "#0b4fbd"
-          )}
-
-          ${makeLine(
-            guideStartX,
-            guideStartY,
-            ownCurrentX,
-            ownCurrentY,
-            "#444",
             0.5,
             "2 2"
           )}
 
+          ${renderCentreArrow(
+            curX,
+            curY,
+            altX,
+            altY,
+            "#0b4fbd"
+          )}
+
           ${makeText(
-            (guideStartX + ownCurrentX) / 2,
-            (guideStartY + ownCurrentY) / 2 - 2,
-            "Current position from guide",
-            2.9,
+            (curX + altX) / 2,
+            (curY + altY) / 2 - 3,
+            "Approach to alteration",
+            3.0,
             "middle",
-            "#444"
+            "#0b4fbd"
           )}
 
           ${makeLine(
-            guideFinalX,
-            guideFinalY,
-            ownFinalX,
-            ownFinalY,
+            altX,
+            altY,
+            finalX,
+            finalY,
             "#8a1a1a",
             0.5,
             "2 2"
           )}
 
           ${makeText(
-            (guideFinalX + ownFinalX) / 2,
-            (guideFinalY + ownFinalY) / 2 - 2,
-            "Final station from guide",
+            (altX + finalX) / 2,
+            (altY + finalY) / 2 + 4,
+            `Alter bearing ${formatBearingHalfDegree(turnCalc.bearingOfFinalFromAlter)}`,
+            3.0,
+            "middle",
+            "#8a1a1a"
+          )}
+
+          ${makeLine(
+            altX,
+            altY,
+            advX,
+            advY,
+            "#111",
+            0.5
+          )}
+
+          ${renderCentreArrow(
+            altX,
+            altY,
+            advX,
+            advY,
+            "#111"
+          )}
+
+          ${makeText(
+            (altX + advX) / 2,
+            (altY + advY) / 2 - 3,
+            "Advance + surge",
+            3.0,
+            "middle",
+            "#111"
+          )}
+
+          ${makeLine(
+            advX,
+            advY,
+            finalTurnX,
+            finalTurnY,
+            "#111",
+            0.5
+          )}
+
+          ${renderCentreArrow(
+            advX,
+            advY,
+            finalTurnX,
+            finalTurnY,
+            "#111"
+          )}
+
+          ${makeText(
+            (advX + finalTurnX) / 2,
+            (advY + finalTurnY) / 2 - 3,
+            "Transfer",
+            3.0,
+            "middle",
+            "#111"
+          )}
+
+          ${makeLine(
+            gX,
+            gY,
+            g2X,
+            g2Y,
+            "#333",
+            0.5
+          )}
+
+          ${renderCentreArrow(
+            gX,
+            gY,
+            g2X,
+            g2Y,
+            "#333"
+          )}
+
+          ${makeText(
+            (gX + g2X) / 2,
+            (gY + g2Y) / 2 - 3,
+            "Guide run during turn",
+            3.0,
+            "middle",
+            "#333"
+          )}
+
+          ${makeLine(
+            gX,
+            gY,
+            finalX,
+            finalY,
+            "#555",
+            0.5,
+            "2 2"
+          )}
+
+          ${makeText(
+            (gX + finalX) / 2,
+            (gY + finalY) / 2 - 3,
+            "Final station at alteration",
+            2.9,
+            "middle",
+            "#555"
+          )}
+
+          ${makeLine(
+            g2X,
+            g2Y,
+            finalTurnX,
+            finalTurnY,
+            "#8a1a1a",
+            0.5,
+            "2 2"
+          )}
+
+          ${makeText(
+            (g2X + finalTurnX) / 2,
+            (g2Y + finalTurnY) / 2 - 3,
+            "Final station after turn",
             2.9,
             "middle",
             "#8a1a1a"
           )}
 
           ${renderPoint(
-            guideStartX,
-            guideStartY,
-            "Guide start",
+            gX,
+            gY,
+            "Guide",
             "#111",
             3,
             -3
           )}
 
           ${renderPoint(
-            guideFinalX,
-            guideFinalY,
-            "Guide final",
-            "#111",
+            g2X,
+            g2Y,
+            "Guide after turn",
+            "#333",
             3,
             -3
           )}
 
           ${renderPoint(
-            ownCurrentX,
-            ownCurrentY,
+            curX,
+            curY,
             "Own current",
             "#0b4fbd",
             3,
@@ -1024,32 +1486,62 @@
           )}
 
           ${renderPoint(
-            ownFinalX,
-            ownFinalY,
-            "Own final station",
+            altX,
+            altY,
+            "Alter here",
+            "#ff8c00",
+            3,
+            -3
+          )}
+
+          ${renderPoint(
+            finalX,
+            finalY,
+            "Final station now",
             "#8a1a1a",
+            3,
+            -3
+          )}
+
+          ${renderPoint(
+            finalTurnX,
+            finalTurnY,
+            "Own final",
+            "#8a1a1a",
+            3,
+            -3
+          )}
+
+          ${renderPoint(
+            advX,
+            advY,
+            "Advance end",
+            "#111",
             3,
             -3
           )}
 
           <rect
             x="12"
-            y="270"
-            width="88"
-            height="18"
-            fill="rgba(255,255,255,0.55)"
+            y="263"
+            width="105"
+            height="25"
+            fill="rgba(255,255,255,0.60)"
             stroke="#111"
             stroke-width="0.25"
           />
 
-          <circle cx="17" cy="276" r="0.5" fill="#111" />
-          ${makeText(22, 277, "Guide ship", 3, "start")}
+          <circle cx="17" cy="270" r="0.5" fill="#111" />
+          ${makeText(22, 271, "Guide", 3, "start")}
 
-          <circle cx="17" cy="283" r="0.5" fill="#0b4fbd" />
-          ${makeText(22, 284, "Own ship", 3, "start")}
+          <circle cx="17" cy="277" r="0.5" fill="#0b4fbd" />
+          ${makeText(22, 278, "Own current", 3, "start")}
 
-          <circle cx="58" cy="283" r="0.5" fill="#8a1a1a" />
-          ${makeText(63, 284, "Final station", 3, "start")}
+          <circle cx="60" cy="277" r="0.5" fill="#ff8c00" />
+          ${makeText(65, 278, "Alter point", 3, "start")}
+
+          <circle cx="17" cy="284" r="0.5" fill="#8a1a1a" />
+          ${makeText(22, 285, "Final station", 3, "start")}
         </svg>
       `;
 
@@ -1067,11 +1559,46 @@
       saveBtn.disabled = true;
     }
 
-    function calculate() {
-      const validationMessage = getValidationMessage();
+    function renderBasicResult(data, solution, turnInfo) {
+      resultBox.innerHTML = `
+        <div class="success">Course to steer calculated.</div>
 
-      if (validationMessage !== "") {
-        showWarning(validationMessage);
+        <div class="output-grid">
+          <div class="output-box">
+            <div class="output-label">Course to steer</div>
+            <div class="output-value">${formatBearingHalfDegree(solution.courseToSteer)}</div>
+          </div>
+
+          <div class="output-box">
+            <div class="output-label">Turn required to steady on guide course</div>
+            <div class="output-value">${formatAngleHalf(turnInfo.angle)} ${turnInfo.direction}</div>
+          </div>
+
+          <div class="output-box">
+            <div class="output-label">Time to final station by direct CTS</div>
+            <div class="output-value">${formatHours(solution.timeHours)}</div>
+          </div>
+
+          <div class="output-box">
+            <div class="output-label">Relative distance to final station</div>
+            <div class="output-value">${formatNumber(solution.relativeDistanceNm, 2)} NM</div>
+          </div>
+        </div>
+
+        <div class="small-note">
+          Enter wheel used, advance, transfer, time of turn and surge rate, then press GO again to calculate alteration position and graph.
+        </div>
+      `;
+
+      printBtn.disabled = true;
+      saveBtn.disabled = true;
+    }
+
+    function calculate() {
+      const basicValidationMessage = getBasicValidationMessage();
+
+      if (basicValidationMessage !== "") {
+        showWarning(basicValidationMessage);
         updateButton();
         return;
       }
@@ -1093,10 +1620,6 @@
               <div class="output-label">Speed to maintain station</div>
               <div class="output-value">${formatNumber(solution.guideSpeed, 2)} kn</div>
             </div>
-          </div>
-
-          <div class="small-note">
-            To remain at the same relative station, own ship must match guide ship's course and speed.
           </div>
         `;
 
@@ -1123,9 +1646,33 @@
               <div class="output-value">${solution.minimumSpeedText}</div>
             </div>
           </div>
+        `;
 
-          <div class="small-note">
-            Increase own speed and recalculate.
+        printBtn.disabled = true;
+        saveBtn.disabled = true;
+        updateButton();
+        return;
+      }
+
+      const turnInfo = calculateShortestTurn(
+        solution.courseToSteer,
+        data.guideCourse
+      );
+
+      if (!hasAnyTurnInput()) {
+        renderBasicResult(data, solution, turnInfo);
+        updateButton();
+        return;
+      }
+
+      const turnValidationMessage = getTurnValidationMessage();
+
+      if (turnValidationMessage !== "") {
+        renderBasicResult(data, solution, turnInfo);
+
+        resultBox.innerHTML += `
+          <div class="small-note warning">
+            ${turnValidationMessage}
           </div>
         `;
 
@@ -1135,10 +1682,35 @@
         return;
       }
 
-      const graph = renderMovementGraph(data, solution);
+      const turnData = getTurnInputs();
+
+      const turnCalc = calculateTurnAllowance(
+        data,
+        solution,
+        turnInfo,
+        turnData
+      );
+
+      const graph = renderMovementGraph(
+        data,
+        solution,
+        turnInfo,
+        turnCalc
+      );
+
+      const timeToAlterText =
+        Number.isFinite(turnCalc.timeToAlterHours) &&
+        turnCalc.timeToAlterHours >= 0
+          ? formatHours(turnCalc.timeToAlterHours)
+          : "Not on present approach line";
+
+      const crossTrackText =
+        Number.isFinite(turnCalc.crossTrackNm)
+          ? `${formatNumber(turnCalc.crossTrackNm * 10, 2)} cables`
+          : "Not available";
 
       resultBox.innerHTML = `
-        <div class="success">Course to steer calculated.</div>
+        <div class="success">Alteration position calculated.</div>
 
         <div class="output-grid">
           <div class="output-box">
@@ -1147,30 +1719,50 @@
           </div>
 
           <div class="output-box">
-            <div class="output-label">Time to final station</div>
-            <div class="output-value">${formatHours(solution.timeHours)}</div>
+            <div class="output-label">Turn required</div>
+            <div class="output-value">${formatAngleHalf(turnInfo.angle)} ${turnInfo.direction}</div>
           </div>
 
           <div class="output-box">
-            <div class="output-label">Own distance to run</div>
-            <div class="output-value">${formatNumber(solution.ownDistanceNm, 2)} NM</div>
+            <div class="output-label">Alter when final station bears</div>
+            <div class="output-value">${formatBearingHalfDegree(turnCalc.bearingOfFinalFromAlter)}</div>
           </div>
 
           <div class="output-box">
-            <div class="output-label">Relative distance to final station</div>
-            <div class="output-value">${formatNumber(solution.relativeDistanceNm, 2)} NM</div>
+            <div class="output-label">Range of final station at alteration</div>
+            <div class="output-value">${formatNumber(turnCalc.rangeOfFinalFromAlterNm * 10, 2)} cables</div>
+          </div>
+
+          <div class="output-box">
+            <div class="output-label">Time of turn</div>
+            <div class="output-value">${formatMinSec(turnCalc.turnTotalSeconds)}</div>
+          </div>
+
+          <div class="output-box">
+            <div class="output-label">Guide run during turn</div>
+            <div class="output-value">${formatNumber(turnCalc.guideRunNm * 10, 2)} cables</div>
+          </div>
+
+          <div class="output-box">
+            <div class="output-label">Surge allowance</div>
+            <div class="output-value">${formatNumber(turnCalc.surgeYards, 1)} yards</div>
+          </div>
+
+          <div class="output-box">
+            <div class="output-label">Time to alteration on present CTS</div>
+            <div class="output-value">${timeToAlterText}</div>
           </div>
         </div>
 
         <div class="small-note">
-          Relative track from current position to final station:
-          ${formatBearingOneDecimal(solution.relativeTrackBearing)}.
+          Wheel used: ${formatNumber(turnData.wheelUsed, 1)}°.
+          Advance and transfer unit entered: ${turnCalc.advanceTransferUnitText}.
           <br>
-          Relative speed made good:
-          ${formatNumber(solution.relativeSpeed, 2)} kn.
+          Speed advantage for surge:
+          ${formatNumber(turnCalc.speedAdvantage, 2)} kn.
           <br>
-          Bearings are true bearings. Range conversion used:
-          1 cable = 0.1 NM.
+          Cross-track difference of calculated alteration point from present CTS line:
+          ${crossTrackText}.
         </div>
 
         <div class="graph-scroll">
