@@ -1,0 +1,1963 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>Fishtail Graph</title>
+
+  <link rel="stylesheet" href="assets/theme.css">
+
+  <style>
+    .input-section {
+      margin-bottom: 20px;
+    }
+
+    .section-subtitle {
+      margin: 0 0 12px;
+      padding-bottom: 7px;
+      border-bottom: 1px solid var(--border-soft);
+      color: var(--text-main);
+      font-size: clamp(16px, 3vw, 19px);
+      font-weight: bold;
+    }
+
+    .input-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .turn-card {
+      margin-top: 14px;
+      padding: 14px;
+      border: 1px solid var(--border-main);
+      border-radius: 12px;
+      background: var(--bg-card);
+    }
+
+    .turn-heading {
+      margin: 0 0 12px;
+      color: var(--text-main);
+      font-size: 17px;
+      font-weight: bold;
+    }
+
+    .distance-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(85px, 0.7fr);
+      gap: 10px;
+      align-items: end;
+    }
+
+    .time-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .output-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .output-box {
+      padding: 14px;
+      border: 1px solid var(--border-main);
+      border-radius: 12px;
+      background: var(--bg-card);
+    }
+
+    .output-label {
+      margin-bottom: 5px;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    .output-value {
+      color: var(--text-main);
+      font-size: clamp(19px, 4vw, 26px);
+      font-weight: bold;
+    }
+
+    .action-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .action-btn {
+      width: 100%;
+      min-height: 52px;
+      border: none;
+      border-radius: 12px;
+      background: var(--primary);
+      color: var(--text-main);
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .action-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .graph-scroll {
+      width: 100%;
+      margin-top: 16px;
+      padding: 10px;
+      overflow: auto;
+      border: 1px solid var(--border-main);
+      border-radius: 12px;
+      background: var(--bg-input);
+    }
+
+    .a4-sheet {
+      width: 210mm;
+      height: 297mm;
+      margin: 0 auto;
+      background: #dff2d8;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.45);
+    }
+
+    .fishtail-svg {
+      display: block;
+      width: 210mm;
+      height: 297mm;
+      background: #dff2d8;
+    }
+
+    @media (max-width: 480px) {
+      .distance-row {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .distance-row .unit-field {
+        grid-column: 1 / -1;
+      }
+    }
+
+    @media (min-width: 760px) {
+      .input-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .output-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .action-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @page {
+      size: A4 portrait;
+      margin: 0;
+    }
+
+    @media print {
+      body {
+        margin: 0;
+        padding: 0;
+        background: white;
+      }
+
+      body * {
+        visibility: hidden;
+      }
+
+      #printArea,
+      #printArea * {
+        visibility: visible;
+      }
+
+      #printArea {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 210mm;
+        height: 297mm;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background: #dff2d8;
+        box-shadow: none;
+      }
+
+      .a4-sheet,
+      .fishtail-svg {
+        width: 210mm;
+        height: 297mm;
+        margin: 0;
+        box-shadow: none;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <a
+    href="index.html"
+    class="home-btn"
+    aria-label="Back to home"
+  >×</a>
+
+  <div class="app-container">
+    <h1 class="page-title">Fishtail Graph</h1>
+
+    <div class="card">
+      <div class="card-title">Fishtail Data</div>
+
+      <div class="input-section">
+        <div class="section-subtitle">General Data</div>
+
+        <div class="input-grid">
+          <div>
+            <label>Type of Fishtail</label>
+            <select id="fishtailType" class="form-control">
+              <option value="full">Full Fishtail</option>
+              <option value="half">Half Fishtail</option>
+            </select>
+          </div>
+
+          <div>
+            <label>Initial Alteration</label>
+            <select id="initialSide" class="form-control">
+              <option value="starboard">Start to Starboard</option>
+              <option value="port">Start to Port</option>
+            </select>
+          </div>
+
+          <div>
+            <label>Alteration Angle</label>
+            <input
+              id="turnAngle"
+              type="number"
+              inputmode="decimal"
+              min="0.1"
+              max="89.9"
+              step="0.1"
+              placeholder="20"
+            >
+          </div>
+
+          <div>
+            <label>Ship Speed in Knots</label>
+            <input
+              id="shipSpeed"
+              type="number"
+              inputmode="decimal"
+              min="0.1"
+              step="0.1"
+              placeholder="15"
+            >
+          </div>
+        </div>
+      </div>
+
+      <div class="input-section">
+        <div class="section-subtitle">Turn Data</div>
+
+        <div class="turn-card">
+          <div class="turn-heading">Turn 1</div>
+
+          <div class="distance-row">
+            <div>
+              <label>Advance</label>
+              <input
+                id="advance1"
+                class="turn-input"
+                type="number"
+                inputmode="decimal"
+                min="0"
+                step="0.1"
+                placeholder="3"
+              >
+            </div>
+
+            <div>
+              <label>Transfer</label>
+              <input
+                id="transfer1"
+                class="turn-input"
+                type="number"
+                inputmode="decimal"
+                min="0"
+                step="0.1"
+                placeholder="2"
+              >
+            </div>
+
+            <div class="unit-field">
+              <label>Unit</label>
+              <select id="unit1" class="turn-input">
+                <option value="cables">cables</option>
+                <option value="metres">metres</option>
+                <option value="yards">yards</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="time-row">
+            <div>
+              <label>Time of Turn Minutes</label>
+              <input
+                id="minutes1"
+                class="turn-input"
+                type="number"
+                inputmode="numeric"
+                min="0"
+                step="1"
+                placeholder="2"
+              >
+            </div>
+
+            <div>
+              <label>Time of Turn Seconds</label>
+              <input
+                id="seconds1"
+                class="turn-input"
+                type="number"
+                inputmode="numeric"
+                min="0"
+                max="59"
+                step="1"
+                placeholder="30"
+              >
+            </div>
+          </div>
+        </div>
+
+        <div class="turn-card">
+          <div class="turn-heading">Turn 2</div>
+
+          <div class="distance-row">
+            <div>
+              <label>Advance</label>
+              <input
+                id="advance2"
+                class="turn-input"
+                type="number"
+                inputmode="decimal"
+                min="0"
+                step="0.1"
+                placeholder="4"
+              >
+            </div>
+
+            <div>
+              <label>Transfer</label>
+              <input
+                id="transfer2"
+                class="turn-input"
+                type="number"
+                inputmode="decimal"
+                min="0"
+                step="0.1"
+                placeholder="3"
+              >
+            </div>
+
+            <div class="unit-field">
+              <label>Unit</label>
+              <select id="unit2" class="turn-input">
+                <option value="cables">cables</option>
+                <option value="metres">metres</option>
+                <option value="yards">yards</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="time-row">
+            <div>
+              <label>Time of Turn Minutes</label>
+              <input
+                id="minutes2"
+                class="turn-input"
+                type="number"
+                inputmode="numeric"
+                min="0"
+                step="1"
+                placeholder="3"
+              >
+            </div>
+
+            <div>
+              <label>Time of Turn Seconds</label>
+              <input
+                id="seconds2"
+                class="turn-input"
+                type="number"
+                inputmode="numeric"
+                min="0"
+                max="59"
+                step="1"
+                placeholder="0"
+              >
+            </div>
+          </div>
+        </div>
+
+        <div id="turn3Card" class="turn-card">
+          <div class="turn-heading">Turn 3</div>
+
+          <div class="distance-row">
+            <div>
+              <label>Advance</label>
+              <input
+                id="advance3"
+                class="turn-input"
+                type="number"
+                inputmode="decimal"
+                min="0"
+                step="0.1"
+                placeholder="3"
+              >
+            </div>
+
+            <div>
+              <label>Transfer</label>
+              <input
+                id="transfer3"
+                class="turn-input"
+                type="number"
+                inputmode="decimal"
+                min="0"
+                step="0.1"
+                placeholder="2"
+              >
+            </div>
+
+            <div class="unit-field">
+              <label>Unit</label>
+              <select id="unit3" class="turn-input">
+                <option value="cables">cables</option>
+                <option value="metres">metres</option>
+                <option value="yards">yards</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="time-row">
+            <div>
+              <label>Time of Turn Minutes</label>
+              <input
+                id="minutes3"
+                class="turn-input"
+                type="number"
+                inputmode="numeric"
+                min="0"
+                step="1"
+                placeholder="2"
+              >
+            </div>
+
+            <div>
+              <label>Time of Turn Seconds</label>
+              <input
+                id="seconds3"
+                class="turn-input"
+                type="number"
+                inputmode="numeric"
+                min="0"
+                max="59"
+                step="1"
+                placeholder="30"
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button id="goBtn" class="go-btn" type="button">
+        PLOT GRAPH
+      </button>
+
+      <div class="action-grid">
+        <button
+          id="printBtn"
+          class="action-btn"
+          type="button"
+          disabled
+        >
+          Print A4 Graph
+        </button>
+
+        <button
+          id="saveBtn"
+          class="action-btn"
+          type="button"
+          disabled
+        >
+          Save as Image
+        </button>
+      </div>
+
+      <div id="result" class="result">
+        Enter fishtail data to generate the graph.
+      </div>
+    </div>
+  </div>
+
+  <script>
+    "use strict";
+
+    const METRES_PER_NM = 1852;
+    const YARDS_PER_NM = 2025.3718285;
+    const EPSILON = 0.000001;
+
+    const fishtailType = document.getElementById("fishtailType");
+    const initialSide = document.getElementById("initialSide");
+    const turnAngle = document.getElementById("turnAngle");
+    const shipSpeed = document.getElementById("shipSpeed");
+
+    const turn3Card = document.getElementById("turn3Card");
+
+    const goBtn = document.getElementById("goBtn");
+    const printBtn = document.getElementById("printBtn");
+    const saveBtn = document.getElementById("saveBtn");
+    const resultBox = document.getElementById("result");
+
+    document
+      .querySelectorAll("input, select")
+      .forEach((control) => {
+        control.addEventListener("input", handleInputChange);
+        control.addEventListener("change", handleInputChange);
+      });
+
+    fishtailType.addEventListener("change", updateFishtailType);
+    goBtn.addEventListener("click", calculateAndPlot);
+    printBtn.addEventListener("click", printGraph);
+    saveBtn.addEventListener("click", saveGraphAsImage);
+
+    function handleInputChange() {
+      printBtn.disabled = true;
+      saveBtn.disabled = true;
+      updateGoButton();
+    }
+
+    function updateFishtailType() {
+      const isFull = fishtailType.value === "full";
+
+      turn3Card.classList.toggle("hidden", !isFull);
+
+      printBtn.disabled = true;
+      saveBtn.disabled = true;
+
+      updateGoButton();
+    }
+
+    function readNumber(id) {
+      const element = document.getElementById(id);
+      const text = element.value.trim();
+
+      return text === "" ? Number.NaN : Number(text);
+    }
+
+    function normalizeBearing(value) {
+      return ((value % 360) + 360) % 360;
+    }
+
+    function degToRad(value) {
+      return value * Math.PI / 180;
+    }
+
+    function radToDeg(value) {
+      return value * 180 / Math.PI;
+    }
+
+    function vectorFromBearing(bearing, distance) {
+      const radians = degToRad(bearing);
+
+      return {
+        east: distance * Math.sin(radians),
+        north: distance * Math.cos(radians)
+      };
+    }
+
+    function add(a, b) {
+      return {
+        east: a.east + b.east,
+        north: a.north + b.north
+      };
+    }
+
+    function subtract(a, b) {
+      return {
+        east: a.east - b.east,
+        north: a.north - b.north
+      };
+    }
+
+    function magnitude(vector) {
+      return Math.sqrt(
+        (vector.east * vector.east) +
+        (vector.north * vector.north)
+      );
+    }
+
+    function bearingFromVector(vector) {
+      return normalizeBearing(
+        radToDeg(
+          Math.atan2(vector.east, vector.north)
+        )
+      );
+    }
+
+    function starboardUnit(course) {
+      return vectorFromBearing(
+        normalizeBearing(course + 90),
+        1
+      );
+    }
+
+    function portUnit(course) {
+      return vectorFromBearing(
+        normalizeBearing(course - 90),
+        1
+      );
+    }
+
+    function multiply(vector, value) {
+      return {
+        east: vector.east * value,
+        north: vector.north * value
+      };
+    }
+
+    function distanceToNm(value, unit) {
+      if (unit === "metres") {
+        return value / METRES_PER_NM;
+      }
+
+      if (unit === "yards") {
+        return value / YARDS_PER_NM;
+      }
+
+      return value * 0.1;
+    }
+
+    function unitShort(unit) {
+      if (unit === "metres") {
+        return "m";
+      }
+
+      if (unit === "yards") {
+        return "yds";
+      }
+
+      return "C";
+    }
+
+    function trimNumber(value, decimals = 1) {
+      return Number(value)
+        .toFixed(decimals)
+        .replace(/\.0+$/, "");
+    }
+
+    function formatDistanceInput(value, unit) {
+      return `${trimNumber(value, 1)}${unitShort(unit)}`;
+    }
+
+    function formatBearing(value) {
+      let rounded = Math.round(normalizeBearing(value) * 2) / 2;
+
+      if (rounded >= 360) {
+        rounded = 0;
+      }
+
+      const whole = Math.floor(rounded);
+      const decimal = Number.isInteger(rounded) ? ".0" : ".5";
+
+      return `${String(whole).padStart(3, "0")}${decimal}°`;
+    }
+
+    function formatTime(totalSeconds) {
+      const rounded = Math.round(totalSeconds);
+      const minutes = Math.floor(rounded / 60);
+      const seconds = rounded % 60;
+
+      return `${minutes} min ${String(seconds).padStart(2, "0")} sec`;
+    }
+
+    function formatOutputDistance(nm) {
+      const cables = Math.abs(nm) * 10;
+
+      return `${cables.toFixed(2)} C`;
+    }
+
+    function getTurnData(turnNumber) {
+      return {
+        advance: readNumber(`advance${turnNumber}`),
+        transfer: readNumber(`transfer${turnNumber}`),
+        unit: document.getElementById(`unit${turnNumber}`).value,
+        minutes: readNumber(`minutes${turnNumber}`),
+        seconds: readNumber(`seconds${turnNumber}`)
+      };
+    }
+
+    function getInputData() {
+      const turnCount =
+        fishtailType.value === "full"
+          ? 3
+          : 2;
+
+      const turns = [];
+
+      for (let index = 1; index <= turnCount; index += 1) {
+        turns.push(getTurnData(index));
+      }
+
+      return {
+        type: fishtailType.value,
+        initialSide: initialSide.value,
+        angle: readNumber("turnAngle"),
+        speed: readNumber("shipSpeed"),
+        turns
+      };
+    }
+
+    function getValidationMessage() {
+      const data = getInputData();
+
+      if (!Number.isFinite(data.angle)) {
+        return "Enter the alteration angle.";
+      }
+
+      if (data.angle <= 0 || data.angle >= 90) {
+        return "Alteration angle must be more than 0° and less than 90°.";
+      }
+
+      if (!Number.isFinite(data.speed) || data.speed <= 0) {
+        return "Recheck ship speed.";
+      }
+
+      for (let index = 0; index < data.turns.length; index += 1) {
+        const turn = data.turns[index];
+        const turnNumber = index + 1;
+
+        if (!Number.isFinite(turn.advance) || turn.advance < 0) {
+          return `Recheck Turn ${turnNumber} advance.`;
+        }
+
+        if (!Number.isFinite(turn.transfer) || turn.transfer < 0) {
+          return `Recheck Turn ${turnNumber} transfer.`;
+        }
+
+        if (!Number.isFinite(turn.minutes) || turn.minutes < 0) {
+          return `Recheck Turn ${turnNumber} minutes.`;
+        }
+
+        if (
+          !Number.isFinite(turn.seconds) ||
+          turn.seconds < 0 ||
+          turn.seconds >= 60
+        ) {
+          return `Turn ${turnNumber} seconds must be from 0 to 59.`;
+        }
+
+        if ((turn.minutes * 60) + turn.seconds <= 0) {
+          return `Turn ${turnNumber} time must be more than zero.`;
+        }
+      }
+
+      return "";
+    }
+
+    function updateGoButton() {
+      goBtn.classList.toggle(
+        "valid",
+        getValidationMessage() === ""
+      );
+    }
+
+    function createTurn(
+      startPoint,
+      initialCourse,
+      finalCourse,
+      advanceNm,
+      transferNm,
+      turnDirection,
+      turnNumber
+    ) {
+      const advanceVector =
+        vectorFromBearing(initialCourse, advanceNm);
+
+      const advanceEnd =
+        add(startPoint, advanceVector);
+
+      const transferDirection =
+        turnDirection === "starboard"
+          ? starboardUnit(initialCourse)
+          : portUnit(initialCourse);
+
+      const transferVector =
+        multiply(transferDirection, transferNm);
+
+      const endPoint =
+        add(advanceEnd, transferVector);
+
+      return {
+        turnNumber,
+        startPoint,
+        advanceEnd,
+        endPoint,
+        initialCourse: normalizeBearing(initialCourse),
+        finalCourse: normalizeBearing(finalCourse),
+        direction: turnDirection,
+        advanceNm,
+        transferNm
+      };
+    }
+
+    function calculateFishtail(data) {
+      const angle = data.angle;
+      const sideSign =
+        data.initialSide === "starboard"
+          ? 1
+          : -1;
+
+      const heading1 =
+        normalizeBearing(sideSign * angle);
+
+      const heading2 =
+        normalizeBearing(-sideSign * angle);
+
+      const A = {
+        east: 0,
+        north: 0
+      };
+
+      const constructionTurns = [];
+      let currentPoint = A;
+
+      const turn1 = data.turns[0];
+
+      const firstTurn = createTurn(
+        currentPoint,
+        0,
+        heading1,
+        distanceToNm(turn1.advance, turn1.unit),
+        distanceToNm(turn1.transfer, turn1.unit),
+        data.initialSide,
+        1
+      );
+
+      constructionTurns.push(firstTurn);
+      currentPoint = firstTurn.endPoint;
+
+      const turn2 = data.turns[1];
+
+      if (data.type === "half") {
+        const secondDirection =
+          data.initialSide === "starboard"
+            ? "port"
+            : "starboard";
+
+        const secondTurn = createTurn(
+          currentPoint,
+          heading1,
+          0,
+          distanceToNm(turn2.advance, turn2.unit),
+          distanceToNm(turn2.transfer, turn2.unit),
+          secondDirection,
+          2
+        );
+
+        constructionTurns.push(secondTurn);
+        currentPoint = secondTurn.endPoint;
+      } else {
+        const secondDirection =
+          data.initialSide === "starboard"
+            ? "port"
+            : "starboard";
+
+        const secondTurn = createTurn(
+          currentPoint,
+          heading1,
+          heading2,
+          distanceToNm(turn2.advance, turn2.unit),
+          distanceToNm(turn2.transfer, turn2.unit),
+          secondDirection,
+          2
+        );
+
+        constructionTurns.push(secondTurn);
+        currentPoint = secondTurn.endPoint;
+
+        const turn3 = data.turns[2];
+
+        const thirdDirection =
+          data.initialSide === "starboard"
+            ? "starboard"
+            : "port";
+
+        const thirdTurn = createTurn(
+          currentPoint,
+          heading2,
+          0,
+          distanceToNm(turn3.advance, turn3.unit),
+          distanceToNm(turn3.transfer, turn3.unit),
+          thirdDirection,
+          3
+        );
+
+        constructionTurns.push(thirdTurn);
+        currentPoint = thirdTurn.endPoint;
+      }
+
+      const totalSeconds =
+        data.turns.reduce(
+          (sum, turn) =>
+            sum +
+            (turn.minutes * 60) +
+            turn.seconds,
+          0
+        );
+
+      const theoreticalDistanceNm =
+        data.speed * (totalSeconds / 3600);
+
+      const B = {
+        east: 0,
+        north: theoreticalDistanceNm
+      };
+
+      const actualFinal = currentPoint;
+
+      const distanceBehindNm =
+        B.north - actualFinal.north;
+
+      const lateralSeparationNm =
+        Math.abs(actualFinal.east);
+
+      const lateralSide =
+        actualFinal.east > EPSILON
+          ? "Starboard"
+          : actualFinal.east < -EPSILON
+            ? "Port"
+            : "On original track";
+
+      return {
+        A,
+        B,
+        actualFinal,
+        constructionTurns,
+        totalSeconds,
+        theoreticalDistanceNm,
+        distanceBehindNm,
+        lateralSeparationNm,
+        lateralSide,
+        heading1,
+        heading2
+      };
+    }
+
+    function niceCeiling(value) {
+      if (value <= 0) {
+        return 0.1;
+      }
+
+      const exponent =
+        Math.floor(Math.log10(value));
+
+      const base =
+        Math.pow(10, exponent);
+
+      const normalized =
+        value / base;
+
+      if (normalized <= 1) {
+        return 1 * base;
+      }
+
+      if (normalized <= 2) {
+        return 2 * base;
+      }
+
+      if (normalized <= 5) {
+        return 5 * base;
+      }
+
+      return 10 * base;
+    }
+
+    function makeLine(
+      x1,
+      y1,
+      x2,
+      y2,
+      stroke,
+      width,
+      dash = ""
+    ) {
+      return `
+        <line
+          x1="${x1}"
+          y1="${y1}"
+          x2="${x2}"
+          y2="${y2}"
+          stroke="${stroke}"
+          stroke-width="${width}"
+          stroke-linecap="round"
+          ${dash ? `stroke-dasharray="${dash}"` : ""}
+        />
+      `;
+    }
+
+    function makeText(
+      x,
+      y,
+      text,
+      size,
+      anchor = "middle",
+      fill = "#111",
+      weight = "normal"
+    ) {
+      return `
+        <text
+          x="${x}"
+          y="${y}"
+          font-size="${size}"
+          text-anchor="${anchor}"
+          fill="${fill}"
+          font-weight="${weight}"
+          font-family="Arial, sans-serif"
+        >${text}</text>
+      `;
+    }
+
+    function renderGrid() {
+      let grid = `
+        <rect
+          x="0"
+          y="0"
+          width="210"
+          height="297"
+          fill="#dff2d8"
+        />
+      `;
+
+      for (let x = 0; x <= 210; x += 1) {
+        const isMajor =
+          x % 10 === 0;
+
+        grid += makeLine(
+          x,
+          0,
+          x,
+          297,
+          isMajor ? "#3b873b" : "#91c891",
+          isMajor ? 0.18 : 0.06
+        );
+      }
+
+      for (let y = 0; y <= 297; y += 1) {
+        const isMajor =
+          y % 10 === 0;
+
+        grid += makeLine(
+          0,
+          y,
+          210,
+          y,
+          isMajor ? "#3b873b" : "#91c891",
+          isMajor ? 0.18 : 0.06
+        );
+      }
+
+      return grid;
+    }
+
+    function renderCentreArrow(
+      x1,
+      y1,
+      x2,
+      y2,
+      colour
+    ) {
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+
+      const length =
+        Math.sqrt((dx * dx) + (dy * dy));
+
+      if (length < 0.001) {
+        return "";
+      }
+
+      const ux = dx / length;
+      const uy = dy / length;
+
+      const midX = (x1 + x2) / 2;
+      const midY = (y1 + y2) / 2;
+
+      const arrowLength = 1.1;
+      const arrowWidth = 0.9;
+
+      const tipX =
+        midX + (ux * arrowLength / 2);
+
+      const tipY =
+        midY + (uy * arrowLength / 2);
+
+      const baseX =
+        midX - (ux * arrowLength / 2);
+
+      const baseY =
+        midY - (uy * arrowLength / 2);
+
+      const perpendicularX = -uy;
+      const perpendicularY = ux;
+
+      const leftX =
+        baseX + (perpendicularX * arrowWidth / 2);
+
+      const leftY =
+        baseY + (perpendicularY * arrowWidth / 2);
+
+      const rightX =
+        baseX - (perpendicularX * arrowWidth / 2);
+
+      const rightY =
+        baseY - (perpendicularY * arrowWidth / 2);
+
+      return `
+        <polygon
+          points="
+            ${tipX},${tipY}
+            ${leftX},${leftY}
+            ${rightX},${rightY}
+          "
+          fill="${colour}"
+          stroke="${colour}"
+          stroke-width="0.1"
+        />
+      `;
+    }
+
+    function renderPoint(
+      x,
+      y,
+      label,
+      fill,
+      offsetX = 3,
+      offsetY = -3
+    ) {
+      return `
+        <circle
+          cx="${x}"
+          cy="${y}"
+          r="0.5"
+          fill="${fill}"
+          stroke="#111"
+          stroke-width="0.15"
+        />
+
+        ${makeText(
+          x + offsetX,
+          y + offsetY,
+          label,
+          3,
+          offsetX >= 0 ? "start" : "end",
+          "#111"
+        )}
+      `;
+    }
+
+    function renderLegend(data, calculation) {
+      const sideText =
+        data.initialSide === "starboard"
+          ? "Starboard"
+          : "Port";
+
+      const typeText =
+        data.type === "full"
+          ? "Full Fishtail"
+          : "Half Fishtail";
+
+      const lines = [
+        `Type = ${typeText}`,
+        `Initial alteration = ${sideText}`,
+        `Alteration angle = ${trimNumber(data.angle, 1)}°`,
+        `Ship speed = ${trimNumber(data.speed, 1)} kn`,
+        `Total time = ${formatTime(calculation.totalSeconds)}`,
+        `Theoretical 000° run = ${(calculation.theoreticalDistanceNm * 10).toFixed(2)}C`
+      ];
+
+      data.turns.forEach((turn, index) => {
+        lines.push(
+          `T${index + 1}: Adv ${formatDistanceInput(turn.advance, turn.unit)}, Tx ${formatDistanceInput(turn.transfer, turn.unit)}, Time ${formatTime((turn.minutes * 60) + turn.seconds)}`
+        );
+      });
+
+      let output = "";
+
+      lines.forEach((line, index) => {
+        output += makeText(
+          12,
+          10 + (index * 5),
+          line,
+          3,
+          "start",
+          "#111"
+        );
+      });
+
+      return output;
+    }
+
+    function renderBottomResults(calculation) {
+      const behindLabel =
+        calculation.distanceBehindNm >= 0
+          ? "Distance Behind"
+          : "Distance Ahead";
+
+      return `
+        ${makeText(
+          12,
+          273,
+          `${behindLabel} = ${formatOutputDistance(calculation.distanceBehindNm)}`,
+          3.6,
+          "start",
+          "#111",
+          "bold"
+        )}
+
+        ${makeText(
+          12,
+          280,
+          `Lateral Separation = ${formatOutputDistance(calculation.lateralSeparationNm)} ${calculation.lateralSide}`,
+          3.6,
+          "start",
+          "#111",
+          "bold"
+        )}
+      `;
+    }
+
+    function renderGraph(data, calculation) {
+      const pageWidth = 210;
+      const pageHeight = 297;
+
+      const plotLeft = 18;
+      const plotRight = 196;
+      const plotTop = 62;
+      const plotBottom = 255;
+
+      const plotWidthCm =
+        (plotRight - plotLeft) / 10;
+
+      const plotHeightCm =
+        (plotBottom - plotTop) / 10;
+
+      const points = [
+        calculation.A,
+        calculation.B,
+        calculation.actualFinal
+      ];
+
+      calculation.constructionTurns.forEach((turn) => {
+        points.push(
+          turn.startPoint,
+          turn.advanceEnd,
+          turn.endPoint
+        );
+      });
+
+      points.push({
+        east: calculation.actualFinal.east,
+        north: calculation.B.north
+      });
+
+      let minEast =
+        Math.min(...points.map((point) => point.east));
+
+      let maxEast =
+        Math.max(...points.map((point) => point.east));
+
+      let minNorth =
+        Math.min(...points.map((point) => point.north));
+
+      let maxNorth =
+        Math.max(...points.map((point) => point.north));
+
+      const rawWidth =
+        Math.max(0.1, maxEast - minEast);
+
+      const rawHeight =
+        Math.max(0.1, maxNorth - minNorth);
+
+      const margin =
+        Math.max(
+          0.1,
+          Math.max(rawWidth, rawHeight) * 0.18
+        );
+
+      minEast -= margin;
+      maxEast += margin;
+      minNorth -= margin;
+      maxNorth += margin;
+
+      const graphWidth =
+        maxEast - minEast;
+
+      const graphHeight =
+        maxNorth - minNorth;
+
+      const scaleNmPerCm =
+        niceCeiling(
+          Math.max(
+            graphWidth / plotWidthCm,
+            graphHeight / plotHeightCm
+          ) * 1.02
+        );
+
+      const contentWidthMm =
+        (graphWidth / scaleNmPerCm) * 10;
+
+      const contentHeightMm =
+        (graphHeight / scaleNmPerCm) * 10;
+
+      const offsetX =
+        plotLeft +
+        ((plotRight - plotLeft - contentWidthMm) / 2);
+
+      const offsetY =
+        plotTop +
+        ((plotBottom - plotTop - contentHeightMm) / 2);
+
+      function x(east) {
+        return (
+          offsetX +
+          ((east - minEast) / scaleNmPerCm) * 10
+        );
+      }
+
+      function y(north) {
+        return (
+          offsetY +
+          ((maxNorth - north) / scaleNmPerCm) * 10
+        );
+      }
+
+      let constructionSvg = "";
+
+      calculation.constructionTurns.forEach((turn) => {
+        const startX = x(turn.startPoint.east);
+        const startY = y(turn.startPoint.north);
+
+        const advanceX = x(turn.advanceEnd.east);
+        const advanceY = y(turn.advanceEnd.north);
+
+        const endX = x(turn.endPoint.east);
+        const endY = y(turn.endPoint.north);
+
+        constructionSvg += `
+          ${makeLine(
+            startX,
+            startY,
+            advanceX,
+            advanceY,
+            "#0b4fbd",
+            0.5
+          )}
+
+          ${renderCentreArrow(
+            startX,
+            startY,
+            advanceX,
+            advanceY,
+            "#0b4fbd"
+          )}
+
+          ${makeText(
+            (startX + advanceX) / 2,
+            (startY + advanceY) / 2 - 3,
+            `A${turn.turnNumber}`,
+            3,
+            "middle",
+            "#0b4fbd"
+          )}
+
+          ${makeLine(
+            advanceX,
+            advanceY,
+            endX,
+            endY,
+            "#8a1a1a",
+            0.5
+          )}
+
+          ${renderCentreArrow(
+            advanceX,
+            advanceY,
+            endX,
+            endY,
+            "#8a1a1a"
+          )}
+
+          ${makeText(
+            (advanceX + endX) / 2,
+            (advanceY + endY) / 2 - 3,
+            `T${turn.turnNumber}`,
+            3,
+            "middle",
+            "#8a1a1a"
+          )}
+
+          ${renderPoint(
+            advanceX,
+            advanceY,
+            `A${turn.turnNumber}`,
+            "#0b4fbd",
+            3,
+            -3
+          )}
+
+          ${renderPoint(
+            endX,
+            endY,
+            `End T${turn.turnNumber} · ${formatBearing(turn.finalCourse)}`,
+            "#8a1a1a",
+            3,
+            -3
+          )}
+        `;
+      });
+
+      const AX = x(calculation.A.east);
+      const AY = y(calculation.A.north);
+
+      const BX = x(calculation.B.east);
+      const BY = y(calculation.B.north);
+
+      const actualX = x(calculation.actualFinal.east);
+      const actualY = y(calculation.actualFinal.north);
+
+      const projection = {
+        east: calculation.actualFinal.east,
+        north: calculation.B.north
+      };
+
+      const projectionX = x(projection.east);
+      const projectionY = y(projection.north);
+
+      const behindText =
+        calculation.distanceBehindNm >= 0
+          ? `${formatOutputDistance(calculation.distanceBehindNm)} behind`
+          : `${formatOutputDistance(calculation.distanceBehindNm)} ahead`;
+
+      const northArrowX = 187;
+      const northArrowTop = 70;
+      const northArrowBottom = 88;
+
+      const svg = `
+        <svg
+          id="fishtailSvg"
+          class="fishtail-svg"
+          xmlns="http://www.w3.org/2000/svg"
+          width="210mm"
+          height="297mm"
+          viewBox="0 0 210 297"
+        >
+          ${renderGrid()}
+
+          ${renderLegend(data, calculation)}
+
+          ${makeText(
+            198,
+            10,
+            `Scale: 1 cm = ${scaleNmPerCm.toFixed(3)} NM`,
+            3.6,
+            "end",
+            "#111"
+          )}
+
+          ${makeText(
+            198,
+            16,
+            `1 mm = ${(scaleNmPerCm / 10).toFixed(3)} NM`,
+            3,
+            "end",
+            "#111"
+          )}
+
+          ${makeLine(
+            northArrowX,
+            northArrowBottom,
+            northArrowX,
+            northArrowTop,
+            "#111",
+            0.5
+          )}
+
+          ${renderCentreArrow(
+            northArrowX,
+            northArrowBottom,
+            northArrowX,
+            northArrowTop,
+            "#111"
+          )}
+
+          ${makeText(
+            northArrowX,
+            northArrowTop - 3,
+            "000°",
+            3.5,
+            "middle",
+            "#111",
+            "bold"
+          )}
+
+          ${makeLine(
+            AX,
+            AY,
+            BX,
+            BY,
+            "#111",
+            0.5,
+            "2 2"
+          )}
+
+          ${renderCentreArrow(
+            AX,
+            AY,
+            BX,
+            BY,
+            "#111"
+          )}
+
+          ${makeText(
+            AX - 3,
+            (AY + BY) / 2,
+            "Original course 000°",
+            3,
+            "end",
+            "#111"
+          )}
+
+          ${constructionSvg}
+
+          ${makeLine(
+            BX,
+            BY,
+            projectionX,
+            projectionY,
+            "#7a4b00",
+            0.5,
+            "2 2"
+          )}
+
+          ${makeText(
+            (BX + projectionX) / 2,
+            projectionY - 3,
+            `Lateral ${formatOutputDistance(calculation.lateralSeparationNm)}`,
+            3,
+            "middle",
+            "#7a4b00"
+          )}
+
+          ${makeLine(
+            projectionX,
+            projectionY,
+            actualX,
+            actualY,
+            "#7a4b00",
+            0.5,
+            "2 2"
+          )}
+
+          ${makeText(
+            projectionX + 3,
+            (projectionY + actualY) / 2,
+            behindText,
+            3,
+            "start",
+            "#7a4b00"
+          )}
+
+          ${renderPoint(
+            AX,
+            AY,
+            "A Initial Position",
+            "#111",
+            3,
+            4
+          )}
+
+          ${renderPoint(
+            BX,
+            BY,
+            "B Position on 000°",
+            "#111",
+            3,
+            -3
+          )}
+
+          ${renderPoint(
+            actualX,
+            actualY,
+            "B'' Actual Final Position",
+            "#ff8c00",
+            3,
+            4
+          )}
+
+          ${renderBottomResults(calculation)}
+        </svg>
+      `;
+
+      return {
+        svg,
+        scaleNmPerCm
+      };
+    }
+
+    function calculateAndPlot() {
+      const validationMessage =
+        getValidationMessage();
+
+      if (validationMessage !== "") {
+        resultBox.innerHTML =
+          `<span class="warning">${validationMessage}</span>`;
+
+        printBtn.disabled = true;
+        saveBtn.disabled = true;
+
+        updateGoButton();
+        return;
+      }
+
+      const data = getInputData();
+      const calculation = calculateFishtail(data);
+      const graph = renderGraph(data, calculation);
+
+      const behindLabel =
+        calculation.distanceBehindNm >= 0
+          ? "Distance Behind"
+          : "Distance Ahead";
+
+      resultBox.innerHTML = `
+        <div class="success">
+          Fishtail graph calculated.
+        </div>
+
+        <div class="output-grid">
+          <div class="output-box">
+            <div class="output-label">
+              ${behindLabel}
+            </div>
+
+            <div class="output-value">
+              ${formatOutputDistance(calculation.distanceBehindNm)}
+            </div>
+          </div>
+
+          <div class="output-box">
+            <div class="output-label">
+              Lateral Separation
+            </div>
+
+            <div class="output-value">
+              ${formatOutputDistance(calculation.lateralSeparationNm)}
+              ${calculation.lateralSide}
+            </div>
+          </div>
+
+          <div class="output-box">
+            <div class="output-label">
+              Total Fishtail Time
+            </div>
+
+            <div class="output-value">
+              ${formatTime(calculation.totalSeconds)}
+            </div>
+          </div>
+
+          <div class="output-box">
+            <div class="output-label">
+              Theoretical Distance on 000°
+            </div>
+
+            <div class="output-value">
+              ${(calculation.theoreticalDistanceNm * 10).toFixed(2)} C
+            </div>
+          </div>
+        </div>
+
+        <div class="graph-scroll">
+          <div id="printArea" class="a4-sheet">
+            ${graph.svg}
+          </div>
+        </div>
+      `;
+
+      printBtn.disabled = false;
+      saveBtn.disabled = false;
+
+      updateGoButton();
+    }
+
+    function printGraph() {
+      const svg =
+        document.getElementById("fishtailSvg");
+
+      if (!svg) {
+        return;
+      }
+
+      window.print();
+    }
+
+    function isIOSDevice() {
+      return (
+        /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+        (
+          navigator.platform === "MacIntel" &&
+          navigator.maxTouchPoints > 1
+        )
+      );
+    }
+
+    function createPngBlobFromSvg(svg) {
+      return new Promise((resolve, reject) => {
+        const serializer =
+          new XMLSerializer();
+
+        const svgText =
+          serializer.serializeToString(svg);
+
+        const svgBlob =
+          new Blob(
+            [svgText],
+            {
+              type: "image/svg+xml;charset=utf-8"
+            }
+          );
+
+        const svgUrl =
+          URL.createObjectURL(svgBlob);
+
+        const image =
+          new Image();
+
+        image.onload = function () {
+          const canvas =
+            document.createElement("canvas");
+
+          canvas.width = 2480;
+          canvas.height = 3508;
+
+          const context =
+            canvas.getContext("2d");
+
+          if (!context) {
+            URL.revokeObjectURL(svgUrl);
+            reject(
+              new Error("Canvas is unavailable.")
+            );
+            return;
+          }
+
+          context.fillStyle = "#dff2d8";
+          context.fillRect(
+            0,
+            0,
+            canvas.width,
+            canvas.height
+          );
+
+          context.drawImage(
+            image,
+            0,
+            0,
+            canvas.width,
+            canvas.height
+          );
+
+          URL.revokeObjectURL(svgUrl);
+
+          canvas.toBlob(
+            function (blob) {
+              if (!blob) {
+                reject(
+                  new Error("Image creation failed.")
+                );
+                return;
+              }
+
+              resolve(blob);
+            },
+            "image/png",
+            1
+          );
+        };
+
+        image.onerror = function () {
+          URL.revokeObjectURL(svgUrl);
+
+          reject(
+            new Error("SVG rendering failed.")
+          );
+        };
+
+        image.src = svgUrl;
+      });
+    }
+
+    function downloadBlob(blob, fileName) {
+      const url =
+        URL.createObjectURL(blob);
+
+      const link =
+        document.createElement("a");
+
+      link.href = url;
+      link.download = fileName;
+      link.rel = "noopener";
+      link.style.display = "none";
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+      }, 3000);
+    }
+
+    function openBlobFallback(blob) {
+      const url =
+        URL.createObjectURL(blob);
+
+      const newWindow =
+        window.open(
+          url,
+          "_blank",
+          "noopener,noreferrer"
+        );
+
+      if (!newWindow) {
+        window.location.href = url;
+      }
+
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+      }, 60000);
+    }
+
+    async function shareImageFile(
+      blob,
+      fileName
+    ) {
+      if (
+        typeof File === "undefined" ||
+        !navigator.share ||
+        !navigator.canShare
+      ) {
+        return false;
+      }
+
+      const file =
+        new File(
+          [blob],
+          fileName,
+          {
+            type: "image/png"
+          }
+        );
+
+      if (
+        !navigator.canShare({
+          files: [file]
+        })
+      ) {
+        return false;
+      }
+
+      await navigator.share({
+        files: [file],
+        title: "Fishtail Graph"
+      });
+
+      return true;
+    }
+
+    async function saveGraphAsImage() {
+      const svg =
+        document.getElementById("fishtailSvg");
+
+      if (!svg) {
+        return;
+      }
+
+      const fileName =
+        "fishtail-graph.png";
+
+      saveBtn.disabled = true;
+
+      try {
+        const pngBlob =
+          await createPngBlobFromSvg(svg);
+
+        if (isIOSDevice()) {
+          const shared =
+            await shareImageFile(
+              pngBlob,
+              fileName
+            );
+
+          if (!shared) {
+            openBlobFallback(pngBlob);
+          }
+        } else {
+          downloadBlob(
+            pngBlob,
+            fileName
+          );
+        }
+      } catch (error) {
+        try {
+          const pngBlob =
+            await createPngBlobFromSvg(svg);
+
+          const shared =
+            await shareImageFile(
+              pngBlob,
+              fileName
+            );
+
+          if (!shared) {
+            openBlobFallback(pngBlob);
+          }
+        } catch (fallbackError) {
+          resultBox.innerHTML += `
+            <div class="warning" style="margin-top:12px;">
+              Image saving failed. Use Print A4 Graph and save as PDF.
+            </div>
+          `;
+        }
+      } finally {
+        saveBtn.disabled = false;
+      }
+    }
+
+    updateFishtailType();
+    updateGoButton();
+  </script>
+</body>
+</html>
